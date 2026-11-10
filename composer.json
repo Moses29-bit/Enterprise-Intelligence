@@ -1,0 +1,22 @@
+{
+  "name": "vantiq/enterprise-intelligence",
+  "description": "VANTIQ Enterprise Intelligence backend",
+  "license": "proprietary",
+  "type": "project",
+  "require": {
+    "php": "^8.2",
+    "ext-json": "*",
+    "ext-mbstring": "*",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Vantiq\\": "backend/src/"
+    }
+  },
+  "scripts": {
+    "test": "php tests/run.php",
+    "lint": "php tests/lint.php"
+  }
+}

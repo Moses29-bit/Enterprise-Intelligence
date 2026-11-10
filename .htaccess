@@ -1,0 +1,8 @@
+Options -Indexes
+RewriteEngine On
+
+<FilesMatch "^\.env">
+  Require all denied
+</FilesMatch>
+
+RewriteRule ^api(?:/.*)?$ api/index.php [QSA,L]
