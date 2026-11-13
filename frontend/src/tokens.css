@@ -1,0 +1,238 @@
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('../node_modules/@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('../node_modules/@fontsource-variable/inter/files/inter-latin-ext-opsz-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url('../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url('../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+:root {
+  --font-ui: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Plus Jakarta Sans Variable', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  --type-display-size: 2.25rem;
+  --type-display-line: 1.15;
+  --type-h1-size: 1.75rem;
+  --type-h1-line: 1.25;
+  --type-h2-size: 1.375rem;
+  --type-h2-line: 1.3;
+  --type-h3-size: 1.125rem;
+  --type-h3-line: 1.4;
+  --type-body-size: 0.9375rem;
+  --type-body-line: 1.55;
+  --type-body-sm-size: 0.875rem;
+  --type-body-sm-line: 1.5;
+  --type-label-size: 0.8125rem;
+  --type-label-line: 1.4;
+  --type-caption-size: 0.75rem;
+  --type-caption-line: 1.4;
+  --type-overline-size: 0.6875rem;
+  --type-overline-line: 1.3;
+  --type-kpi-size: clamp(1.75rem, 1.2rem + 1.5vw, 2.5rem);
+  --type-kpi-line: 1.1;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 650;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 2.5rem;
+  --space-8: 3rem;
+}
+
+html {
+  font-family: var(--font-ui);
+  font-optical-sizing: auto;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-ui);
+}
+
+body {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+h1,
+h2,
+h3,
+h4,
+.page-title,
+.dashboard-heading,
+.brand-heading {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+h1,
+.page-title,
+.dashboard-heading {
+  font-size: var(--type-h1-size);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--type-h1-line);
+}
+
+h2,
+.workspace-card h2 {
+  font-size: var(--type-h2-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--type-h2-line);
+}
+
+h3,
+h4,
+.panel-header h3 {
+  font-size: var(--type-h3-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--type-h3-line);
+}
+
+label,
+.navigation-item,
+.workspace-nav-item {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+}
+
+small,
+.caption,
+.metric-delta,
+.metric-label {
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
+}
+
+.eyebrow,
+.page-eyebrow,
+.section-eyebrow,
+.section-label {
+  font-size: var(--type-overline-size);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  line-height: var(--type-overline-line);
+  text-transform: uppercase;
+}
+
+.metric-value,
+.kpi-value,
+.executive-metric > strong,
+.financial-value {
+  font-family: var(--font-display);
+  font-size: var(--type-kpi-size);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-kpi-line);
+}
+
+table,
+.data-table,
+.financial-value,
+.kpi-value,
+.metric-value,
+.executive-metric > strong,
+time {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+code,
+pre,
+kbd,
+.data-preview,
+.audit-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+.text-display { font: var(--font-weight-bold) var(--type-display-size)/var(--type-display-line) var(--font-display); letter-spacing: -0.015em; }
+.text-h1 { font: var(--font-weight-bold) var(--type-h1-size)/var(--type-h1-line) var(--font-display); letter-spacing: -0.015em; }
+.text-h2 { font: var(--font-weight-semibold) var(--type-h2-size)/var(--type-h2-line) var(--font-display); letter-spacing: -0.015em; }
+.text-h3 { font: var(--font-weight-semibold) var(--type-h3-size)/var(--type-h3-line) var(--font-display); letter-spacing: -0.015em; }
+.text-body { font-size: var(--type-body-size); line-height: var(--type-body-line); }
+.text-body-sm { font-size: var(--type-body-sm-size); line-height: var(--type-body-sm-line); }
+.text-label { font-size: var(--type-label-size); line-height: var(--type-label-line); }
+.text-caption { font-size: var(--type-caption-size); line-height: var(--type-caption-line); }
+.text-overline { font-size: var(--type-overline-size); font-weight: var(--font-weight-semibold); letter-spacing: 0.06em; line-height: var(--type-overline-line); text-transform: uppercase; }
+.text-kpi { font: var(--font-weight-bold) var(--type-kpi-size)/var(--type-kpi-line) var(--font-display); font-variant-numeric: tabular-nums lining-nums; }
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:not([tabindex='-1']):focus-visible {
+  outline: 2px solid #19705d;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
