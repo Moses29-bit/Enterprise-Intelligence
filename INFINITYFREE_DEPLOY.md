@@ -52,7 +52,15 @@ InfinityFree does not provide a real production Laravel migration workflow here.
 
 ## 4. Environment file
 
-Copy `.env.example` to `.env` in `htdocs/`.
+For this deployment, copy `.env.infinityfree.example` to `.env` and replace every placeholder.
+
+This app is deployed in the `/Enterpriseintelligence/` subdirectory, so the public values are:
+
+```text
+APP_URL=https://vantiq.free.je/Enterpriseintelligence
+ALLOWED_ORIGINS=https://vantiq.free.je
+RESET_URL=https://vantiq.free.je/Enterpriseintelligence/reset-password
+```
 
 Set values like:
 
