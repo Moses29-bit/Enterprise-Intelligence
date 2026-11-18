@@ -25,28 +25,36 @@ final class Router
             foreach ($this->routes as [$method, $pattern, $handler]) {
                 if ($request->method === $method && preg_match($pattern, $request->path, $matches)) {
                     $params = array_filter($matches, static fn (string|int $key): bool => is_string($key), ARRAY_FILTER_USE_KEY);
-                    Response::json(['data' => $handler($request, $params)]);
+                    Response::success($handler($request, $params));
                     return;
                 }
             }
 
             throw new ApiException(404, 'not_found', 'The requested endpoint was not found.');
         } catch (ApiException $exception) {
-            Response::json([
-                'error' => [
-                    'code' => $exception->errorCode,
-                    'message' => $exception->getMessage(),
-                    'details' => $exception->details === [] ? null : $exception->details
-                ]
-            ], $exception->status);
+            Response::error(
+                $exception->errorCode,
+                $exception->getMessage(),
+                $exception->details === [] ? null : $exception->details,
+                $exception->status
+            );
         } catch (Throwable $exception) {
-            $this->logger->error('Unhandled API exception', ['exception' => $exception::class]);
-            Response::json([
-                'error' => [
-                    'code' => 'internal_error',
-                    'message' => 'The service is temporarily unavailable.'
-                ]
-            ], 500);
+            $referenceId = $this->logger->exception(
+                'Unhandled API exception',
+                $exception,
+                self::errorContext($request)
+            );
+            Response::error('internal_error', 'The service is temporarily unavailable.', null, 500, $referenceId);
         }
+    }
+
+    private static function errorContext(Request $request): array
+    {
+        return [
+            'operation' => substr($request->method . ' ' . $request->path, 0, 256),
+            'stage' => 'route_dispatch',
+            'user_id' => isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null,
+            'organisation_id' => isset($_SESSION['organisation_id']) ? (int) $_SESSION['organisation_id'] : null
+        ];
     }
 }

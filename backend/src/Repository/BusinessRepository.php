@@ -226,7 +226,13 @@ final class BusinessRepository
             'purchaseOrders' => $purchaseOrders->fetchAll(),
             'recentMovements' => $movements->fetchAll(),
             'stockHealth' => [
-                'lowStockCount' => count($lowStockRows),
+                'lowStockCount' => $this->countValue(
+                    $this->pdo->prepare(
+                        'SELECT COUNT(*) FROM products
+                         WHERE organisation_id = :organisation_id AND stock_level <= reorder_level'
+                    ),
+                    ['organisation_id' => $organisationId]
+                ),
                 'purchaseOrderCount' => $this->countValue(
                     $this->pdo->prepare('SELECT COUNT(*) FROM purchase_orders WHERE organisation_id = :organisation_id'),
                     ['organisation_id' => $organisationId]
@@ -370,14 +376,44 @@ final class BusinessRepository
             $this->pdo->prepare('SELECT COUNT(*) FROM audit_logs WHERE organisation_id = :organisation_id'),
             ['organisation_id' => $organisationId]
         );
+        $activeUserCount = $this->countValue(
+            $this->pdo->prepare("SELECT COUNT(*) FROM users WHERE organisation_id = :organisation_id AND status = 'active'"),
+            ['organisation_id' => $organisationId]
+        );
+        $suspendedUserCount = $this->countValue(
+            $this->pdo->prepare("SELECT COUNT(*) FROM users WHERE organisation_id = :organisation_id AND status = 'suspended'"),
+            ['organisation_id' => $organisationId]
+        );
+        $roleCount = $this->countValue(
+            $this->pdo->prepare('SELECT COUNT(*) FROM roles WHERE organisation_id = :organisation_id AND is_system = 0'),
+            ['organisation_id' => $organisationId]
+        );
+        $organisationStatement = $this->pdo->prepare(
+            'SELECT id, name, slug, status FROM organisations WHERE id = :organisation_id LIMIT 1'
+        );
+        $organisationStatement->execute(['organisation_id' => $organisationId]);
+        $recentActivity = $this->pdo->prepare(
+            'SELECT a.action_type, a.entity_name, a.created_at, u.full_name AS actor
+             FROM audit_logs a
+             LEFT JOIN users u ON u.id = a.user_id AND u.organisation_id = a.organisation_id
+             WHERE a.organisation_id = :organisation_id
+             ORDER BY a.created_at DESC, a.id DESC
+             LIMIT 5'
+        );
+        $recentActivity->execute(['organisation_id' => $organisationId]);
 
         return [
             'stats' => [
                 'users' => $userCount,
+                'activeUsers' => $activeUserCount,
+                'suspendedUsers' => $suspendedUserCount,
+                'roles' => $roleCount,
                 'branches' => $branchCount,
                 'departments' => $departmentCount,
                 'auditEvents' => $auditCount,
             ],
+            'organisation' => $organisationStatement->fetch() ?: null,
+            'recentActivity' => $recentActivity->fetchAll(),
             'source' => 'organisation administration',
         ];
     }
@@ -438,13 +474,59 @@ final class BusinessRepository
     public function adminRoles(int $organisationId): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT id, name, description
-             FROM roles
-             WHERE organisation_id = :organisation_id AND is_system = 0
-             ORDER BY name ASC'
+            'SELECT r.id, r.name, r.description,
+                    GROUP_CONCAT(DISTINCT p.code ORDER BY p.code SEPARATOR ",") AS permissions
+             FROM roles r
+             LEFT JOIN role_permissions rp ON rp.role_id = r.id
+             LEFT JOIN permissions p ON p.id = rp.permission_id
+             WHERE r.organisation_id = :organisation_id AND r.is_system = 0
+             GROUP BY r.id, r.name, r.description
+             ORDER BY r.name ASC'
         );
         $statement->execute(['organisation_id' => $organisationId]);
         return ['roles' => $statement->fetchAll()];
+    }
+
+    public function adminAuditLogs(int $organisationId): array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT a.id, a.action_type, a.entity_name, a.details, a.created_at,
+                    u.full_name AS actor
+             FROM audit_logs a
+             LEFT JOIN users u ON u.id = a.user_id AND u.organisation_id = a.organisation_id
+             WHERE a.organisation_id = :organisation_id
+             ORDER BY a.created_at DESC, a.id DESC
+             LIMIT 100'
+        );
+        $statement->execute(['organisation_id' => $organisationId]);
+        $logs = $statement->fetchAll();
+
+        foreach ($logs as &$log) {
+            $metadata = is_string($log['details'] ?? null)
+                ? json_decode($log['details'], true)
+                : null;
+            $log['metadata'] = is_array($metadata) ? $this->safeAuditMetadata($metadata) : [];
+            unset($log['details']);
+        }
+        unset($log);
+
+        return ['audit_logs' => $logs, 'source' => 'organisation audit records'];
+    }
+
+    private function safeAuditMetadata(array $metadata): array
+    {
+        $safe = [];
+        foreach ($metadata as $key => $value) {
+            if (preg_match('/password|secret|token|hash|authorization|cookie|credential/i', (string) $key)) {
+                continue;
+            }
+            if (is_array($value)) {
+                $safe[$key] = $this->safeAuditMetadata($value);
+            } elseif (is_scalar($value) || $value === null) {
+                $safe[$key] = $value;
+            }
+        }
+        return $safe;
     }
 
     public function createBranch(int $organisationId, int $userId, string $name, string $code): array
@@ -598,11 +680,12 @@ final class BusinessRepository
 
             if ($assumptions !== []) {
                 $assumptionInsert = $this->pdo->prepare(
-                    'INSERT INTO scenario_assumptions (scenario_id, assumption_key, assumption_value, comment, created_at)
-                     VALUES (:scenario_id, :assumption_key, :assumption_value, :comment, CURRENT_TIMESTAMP)'
+                    'INSERT INTO scenario_assumptions (organisation_id, scenario_id, assumption_key, assumption_value, comment, created_at)
+                     VALUES (:organisation_id, :scenario_id, :assumption_key, :assumption_value, :comment, CURRENT_TIMESTAMP)'
                 );
                 foreach ($assumptions as $key => $value) {
                     $assumptionInsert->execute([
+                        'organisation_id' => $organisationId,
                         'scenario_id' => $scenarioId,
                         'assumption_key' => (string) $key,
                         'assumption_value' => json_encode($value, JSON_THROW_ON_ERROR),
@@ -628,10 +711,11 @@ final class BusinessRepository
             $profit = $projectedRevenue - $projectedExpenses;
 
             $resultInsert = $this->pdo->prepare(
-                'INSERT INTO scenario_results (scenario_id, label, metric_name, actual_value, projected_value, variance, created_at)
-                 VALUES (:scenario_id, :label, :metric_name, :actual_value, :projected_value, :variance, CURRENT_TIMESTAMP)'
+                'INSERT INTO scenario_results (organisation_id, scenario_id, label, metric_name, actual_value, projected_value, variance, created_at)
+                 VALUES (:organisation_id, :scenario_id, :label, :metric_name, :actual_value, :projected_value, :variance, CURRENT_TIMESTAMP)'
             );
             $resultInsert->execute([
+                'organisation_id' => $organisationId,
                 'scenario_id' => $scenarioId,
                 'label' => 'Projected revenue',
                 'metric_name' => 'revenue',
@@ -640,6 +724,7 @@ final class BusinessRepository
                 'variance' => round($projectedRevenue - $baseRevenue, 2),
             ]);
             $resultInsert->execute([
+                'organisation_id' => $organisationId,
                 'scenario_id' => $scenarioId,
                 'label' => 'Projected operating profit',
                 'metric_name' => 'operating_profit',
@@ -663,7 +748,7 @@ final class BusinessRepository
     public function decisionScenarioDetail(int $organisationId, int $scenarioId): array
     {
         $scenario = $this->pdo->prepare(
-            'SELECT ds.id, ds.name, ds.description, ds.status, ds.created_at, u.name AS created_by
+            'SELECT ds.id, ds.name, ds.description, ds.status, ds.created_at, u.full_name AS created_by
              FROM decision_scenarios ds
              LEFT JOIN users u ON u.id = ds.created_by_user_id
              WHERE ds.id = :scenario_id AND ds.organisation_id = :organisation_id

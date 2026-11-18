@@ -3,107 +3,115 @@ declare(strict_types=1);
 
 namespace Vantiq\Http;
 
-use Vantiq\Repository\RoleRepository;
 use Vantiq\Security\AuthMiddleware;
+use Vantiq\Security\PermissionMiddleware;
 use Vantiq\Service\BusinessService;
 
-final class BusinessController
+final class BusinessController extends Controller
 {
     public function __construct(
         private readonly BusinessService $service,
-        private readonly AuthMiddleware $middleware,
-        private readonly RoleRepository $roles
+        AuthMiddleware $middleware,
+        PermissionMiddleware $permissions
     ) {
+        parent::__construct($middleware, $permissions);
     }
 
     public function financeSummary(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'finance.read');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'finance.read');
         return $this->service->financeSummary((int) $user['organisation_id']);
     }
 
     public function operationsSummary(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'operations.read');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'operations.read');
         return $this->service->operationsSummary((int) $user['organisation_id']);
     }
 
     public function reportsSummary(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'reports.read');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'reports.read');
         return $this->service->reportsSummary((int) $user['organisation_id']);
     }
 
     public function forecastSummary(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'operations.read');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'operations.read');
         return $this->service->forecastSummary((int) $user['organisation_id']);
     }
 
     public function riskAlerts(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'risks.read');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'risks.read');
         return $this->service->riskAlerts((int) $user['organisation_id']);
     }
 
     public function decisionScenarios(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'decisions.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'decisions.manage');
         return $this->service->decisionScenarios((int) $user['organisation_id']);
     }
 
     public function importsHistory(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'connect.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'connect.manage');
         return $this->service->importsHistory((int) $user['organisation_id']);
     }
 
     public function adminOverview(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'users.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'users.manage');
         return $this->service->adminOverview($this->organisationId($user));
     }
 
     public function adminUsers(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'users.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'users.manage');
         return $this->service->adminUsers($this->organisationId($user));
     }
 
     public function adminBranches(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'users.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'users.manage');
         return $this->service->adminBranches($this->organisationId($user));
     }
 
     public function adminDepartments(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'users.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'users.manage');
         return $this->service->adminDepartments($this->organisationId($user));
     }
 
     public function adminRoles(): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'users.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'users.manage');
         return $this->service->adminRoles($this->organisationId($user));
+    }
+
+    public function adminAuditLogs(): array
+    {
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'users.manage');
+        return $this->service->adminAuditLogs($this->organisationId($user));
     }
 
     public function createBranch(Request $request): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'users.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'users.manage');
         $input = $request->json();
         Validator::only($input, ['name', 'code']);
         $name = Validator::requiredString($input, 'name', 160);
@@ -118,8 +126,8 @@ final class BusinessController
 
     public function createDepartment(Request $request): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'users.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'users.manage');
         $input = $request->json();
         Validator::only($input, ['name', 'code', 'branch_id']);
         $name = Validator::requiredString($input, 'name', 120);
@@ -144,8 +152,8 @@ final class BusinessController
 
     public function riskAlertStatusUpdate(Request $request, array $params): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'risks.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'risks.manage');
         $input = $request->json();
         Validator::only($input, ['status', 'reviewer_user_id', 'resolution_notes']);
         $status = Validator::requiredString($input, 'status', 20);
@@ -185,8 +193,8 @@ final class BusinessController
 
     public function createDecisionScenario(Request $request): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'decisions.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'decisions.manage');
         $input = $request->json();
         Validator::only($input, ['name', 'description', 'status', 'assumptions']);
         $status = $input['status'] ?? 'draft';
@@ -231,15 +239,15 @@ final class BusinessController
 
     public function decisionScenarioDetail(array $params): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'decisions.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'decisions.manage');
         return $this->service->decisionScenarioDetail((int) $user['organisation_id'], (int) $params['id']);
     }
 
     public function importPreview(Request $request): array
     {
-        $user = $this->middleware->requireUser();
-        $this->requirePermission((int) $user['id'], 'connect.manage');
+        $user = $this->authenticatedUser();
+        $this->requirePermission($user, 'connect.manage');
         $input = $request->json();
         Validator::only($input, ['file_name', 'csv']);
         $fileName = Validator::requiredString($input, 'file_name', 255);
@@ -251,23 +259,6 @@ final class BusinessController
         }
 
         return $this->service->importPreview((int) $user['organisation_id'], (int) $user['id'], $fileName, $csvData);
-    }
-
-    private function requirePermission(int $userId, string $permission): void
-    {
-        if ($this->roles->hasPermission($userId, $permission) || $this->roles->hasPermission($userId, 'platform.users.manage')) {
-            return;
-        }
-
-        throw new ApiException(403, 'forbidden', 'You do not have permission to access this module.');
-    }
-
-    private function organisationId(array $user): int
-    {
-        if ($user['organisation_id'] === null) {
-            throw new ApiException(403, 'tenant_required', 'This operation requires an organisation account.');
-        }
-        return (int) $user['organisation_id'];
     }
 
     private function code(array $input, string $field): string

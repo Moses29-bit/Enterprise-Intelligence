@@ -37,6 +37,10 @@ final class AuthMiddleware
             throw new ApiException(401, 'session_expired', 'Your session has expired. Sign in again.');
         }
 
+        $_SESSION['organisation_id'] = $user['organisation_id'] === null
+            ? null
+            : (int) $user['organisation_id'];
+
         if ($user['organisation_id'] !== null) {
             $organisation = $this->organisations->findById((int) $user['organisation_id']);
             if ($organisation === null || $organisation['status'] !== 'active') {

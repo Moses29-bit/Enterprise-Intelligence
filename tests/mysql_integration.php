@@ -8,8 +8,12 @@ use Vantiq\Config\Config;
 use Vantiq\Http\Request;
 use Vantiq\Infrastructure\Database;
 use Vantiq\Infrastructure\Logger;
+use Vantiq\Repository\AuditRepository;
+use Vantiq\Repository\LedgerRepository;
+use Vantiq\Repository\OutboxRepository;
 use Vantiq\Repository\PasswordResetRepository;
 use Vantiq\Security\SessionManager;
+use Vantiq\Service\OutboxDispatcher;
 
 $config = new Config([
     'app_env' => 'test',
@@ -67,6 +71,28 @@ try {
     }
     $organisationId = (int) $registration['data']['user']['organisation']['id'];
 
+    $outbox = new OutboxRepository($pdo);
+    (new LedgerRepository($pdo, new AuditRepository($pdo), $outbox))->createProduct(
+        $organisationId,
+        (int) $registration['data']['user']['id'],
+        [
+            'name' => 'Outbox integration fixture',
+            'sku' => 'OUTBOX-' . strtoupper(bin2hex(random_bytes(5))),
+            'unit_cost' => '2.00',
+            'selling_price' => '5.00',
+            'reorder_level' => 1,
+        ]
+    );
+    $dispatchResult = (new OutboxDispatcher($outbox, new Logger()))->runOnce(10, $organisationId);
+    if ($dispatchResult !== ['published' => 1, 'failed' => 0]) {
+        throw new RuntimeException('The committed product was not processed by the tenant-scoped outbox worker.');
+    }
+    $notifications = $outbox->notificationsAfter($organisationId, 0);
+    if (count($notifications) !== 1
+        || $notifications[0]['event_type'] !== 'ProductCreated'
+        || !in_array('operations', $notifications[0]['modules'], true)) {
+        throw new RuntimeException('The MySQL outbox event was not published as a tenant-scoped notification.');
+    }
     [$status, $current] = $request('GET', '/auth/me');
     if ($status !== 200 || ($current['data']['user']['email'] ?? null) !== $email) {
         throw new RuntimeException('MySQL-backed current-user lookup failed.');
@@ -113,7 +139,7 @@ try {
         throw new RuntimeException('Logout did not invalidate the authenticated session.');
     }
 
-    echo "PASS MySQL-backed API registration, role assignment, current user, password change, login, token use, and logout\n";
+    echo "PASS MySQL-backed auth, transactional product outbox, tenant notification publication, and logout\n";
 } finally {
     if ($organisationId !== null) {
         $delete = $pdo->prepare('DELETE FROM organisations WHERE id = :id');

@@ -10,7 +10,10 @@ use Vantiq\Http\AccountController;
 use Vantiq\Http\ApiException;
 use Vantiq\Http\AuthController;
 use Vantiq\Http\BusinessController;
+use Vantiq\Http\DataWorkspaceController;
 use Vantiq\Http\EnterpriseWorkflowController;
+use Vantiq\Http\EventStreamController;
+use Vantiq\Http\OutboxController;
 use Vantiq\Http\LedgerController;
 use Vantiq\Http\Request;
 use Vantiq\Http\Response;
@@ -18,20 +21,24 @@ use Vantiq\Http\Router;
 use Vantiq\Infrastructure\Logger;
 use Vantiq\Repository\AuditRepository;
 use Vantiq\Repository\BusinessRepository;
+use Vantiq\Repository\DataWorkspaceRepository;
 use Vantiq\Repository\EnterpriseWorkflowRepository;
 use Vantiq\Repository\LoginAttemptRepository;
 use Vantiq\Repository\LoginHistoryRepository;
 use Vantiq\Repository\LedgerRepository;
 use Vantiq\Repository\OrganisationRepository;
+use Vantiq\Repository\OutboxRepository;
 use Vantiq\Repository\PasswordResetRepository;
 use Vantiq\Repository\RoleRepository;
 use Vantiq\Repository\UserRepository;
 use Vantiq\Security\AuthMiddleware;
 use Vantiq\Security\CsrfMiddleware;
+use Vantiq\Security\PermissionMiddleware;
 use Vantiq\Security\SessionManager;
 use Vantiq\Service\AccountService;
 use Vantiq\Service\AuthService;
 use Vantiq\Service\BusinessService;
+use Vantiq\Service\DataWorkspaceService;
 use Vantiq\Service\EnterpriseWorkflowService;
 use Vantiq\Service\LedgerService;
 use Vantiq\Service\PhpMailPasswordResetDelivery;
@@ -40,8 +47,9 @@ final class Application
 {
     public function __construct(
         private readonly Config $config,
-        private readonly PDO $pdo,
-        private readonly Logger $logger
+        private readonly ?PDO $pdo,
+        private readonly Logger $logger,
+        private readonly ?string $databaseFailureReferenceId = null
     ) {
     }
 
@@ -52,29 +60,78 @@ final class Application
             return;
         }
 
-        $session = new SessionManager($this->config);
-        $session->start();
         if ($request->method === 'OPTIONS') {
             http_response_code(204);
             return;
         }
 
+        if ($request->method === 'GET' && $request->path === '/health') {
+            $databaseConnected = false;
+            if ($this->pdo !== null) {
+                try {
+                    $this->pdo->query('SELECT 1')->fetchColumn();
+                    $databaseConnected = true;
+                } catch (Throwable $exception) {
+                    $referenceId = $this->logger->exception(
+                        'Database health check failed',
+                        $exception,
+                        ['operation' => 'GET /health', 'stage' => 'health_check']
+                    );
+                }
+            }
+
+            $health = [
+                'status' => $databaseConnected ? 'ok' : 'degraded',
+                'php_version' => PHP_VERSION,
+                'database' => ['connected' => $databaseConnected]
+            ];
+            if (isset($referenceId)) {
+                $health['diagnostic_reference_id'] = $referenceId;
+            }
+            Response::success($health);
+            return;
+        }
+
+        if ($this->pdo === null) {
+            Response::error(
+                'database_unavailable',
+                'The database is temporarily unavailable.',
+                null,
+                503,
+                $this->databaseFailureReferenceId
+            );
+            return;
+        }
+
+        $session = new SessionManager($this->config);
+        $session->start();
+
         try {
             (new CsrfMiddleware($session))->handle($request);
             if (in_array($request->method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)
                 && $request->body !== ''
-                && !str_starts_with(strtolower($request->header('content-type') ?? ''), 'application/json')) {
+                && !$request->isJson()
+                && !$request->isMultipart()) {
                 throw new ApiException(415, 'unsupported_media_type', 'Send request data as application/json.');
+            }
+            if ($request->isMultipart()
+                && !in_array($request->path, ['/documents/upload', '/imports/upload'], true)) {
+                throw new ApiException(415, 'unsupported_media_type', 'Multipart uploads are not supported for this endpoint.');
+            }
+            if ($request->isMultipart() && ($request->contentLength() ?? 0) > Request::MAX_MULTIPART_BYTES) {
+                throw new ApiException(413, 'payload_too_large', 'The upload request exceeds the 15 MB file size limit.');
             }
 
             $users = new UserRepository($this->pdo);
             $organisations = new OrganisationRepository($this->pdo);
             $roles = new RoleRepository($this->pdo);
             $audit = new AuditRepository($this->pdo);
+            $outbox = new OutboxRepository($this->pdo);
             $attempts = new LoginAttemptRepository($this->pdo);
             $history = new LoginHistoryRepository($this->pdo);
             $resetTokens = new PasswordResetRepository($this->pdo);
             $authMiddleware = new AuthMiddleware($this->config, $session, $users, $organisations);
+            $permissionMiddleware = new PermissionMiddleware($roles);
             $authService = new AuthService(
                 $this->pdo,
                 $this->config,
@@ -97,24 +154,38 @@ final class Application
             $businessController = new BusinessController(
                 new BusinessService(new BusinessRepository($this->pdo, $audit)),
                 $authMiddleware,
-                $roles
+                $permissionMiddleware
             );
             $ledgerController = new LedgerController(
-                new LedgerService(new LedgerRepository($this->pdo, $audit)),
+                new LedgerService(new LedgerRepository($this->pdo, $audit, $outbox)),
                 $authMiddleware,
-                $roles
+                $permissionMiddleware
             );
             $workflowController = new EnterpriseWorkflowController(
-                new EnterpriseWorkflowService(new EnterpriseWorkflowRepository($this->pdo, $audit)),
+                new EnterpriseWorkflowService(new EnterpriseWorkflowRepository($this->pdo, $audit, $outbox)),
                 $authMiddleware,
-                $roles
+                $permissionMiddleware
+            );
+            $dataWorkspaceController = new DataWorkspaceController(
+                new DataWorkspaceService(
+                    new DataWorkspaceRepository($this->pdo, $audit, $outbox),
+                    $this->config,
+                    $this->pdo,
+                    $this->logger,
+                    $outbox
+                ),
+                $authMiddleware,
+                $permissionMiddleware,
+                $organisations
             );
 
+            if ($request->method === 'GET' && $request->path === '/events/stream') {
+                (new EventStreamController($authMiddleware, $roles, $outbox, $this->logger))->stream($request);
+                return;
+            }
+
+            $outboxController = new OutboxController($outbox, $authMiddleware, $permissionMiddleware);
             $router = new Router($this->logger);
-            $router->add('GET', '#^/health$#', function (): array {
-                $this->pdo->query('SELECT 1')->fetchColumn();
-                return ['status' => 'ok'];
-            });
             $router->add('GET', '#^/auth/csrf$#', static fn (): array => $authController->csrf());
             $router->add('POST', '#^/auth/register$#', static fn (Request $r): array => $authController->register($r));
             $router->add('POST', '#^/auth/login$#', static fn (Request $r): array => $authController->login($r));
@@ -173,25 +244,54 @@ final class Application
             $router->add('GET', '#^/admin/branches$#', static fn (): array => $businessController->adminBranches());
             $router->add('GET', '#^/admin/departments$#', static fn (): array => $businessController->adminDepartments());
             $router->add('GET', '#^/admin/roles$#', static fn (): array => $businessController->adminRoles());
+            $router->add('GET', '#^/admin/audit-logs$#', static fn (): array => $businessController->adminAuditLogs());
+            $router->add('GET', '#^/admin/outbox/failures$#', static fn (): array => $outboxController->failures());
+            $router->add(
+                'POST',
+                '#^/admin/outbox/events/(?P<eventId>[a-fA-F0-9-]{36})/replay$#',
+                static fn (Request $r, array $params): array => $outboxController->replay($params)
+            );
             $router->add('POST', '#^/admin/branches$#', static fn (Request $r): array => $businessController->createBranch($r));
             $router->add('POST', '#^/admin/departments$#', static fn (Request $r): array => $businessController->createDepartment($r));
+            $router->add('GET', '#^/documents$#', static fn (Request $r): array => $dataWorkspaceController->documents($r));
+            $router->add('POST', '#^/documents/upload$#', static fn (Request $r): array => $dataWorkspaceController->uploadDocument($r));
+            $router->add('GET', '#^/documents/versions/(?P<group>[a-fA-F0-9-]{36})$#', static fn (Request $r, array $params): array => $dataWorkspaceController->documentVersions($params));
+            $router->add('GET', '#^/documents/(?P<id>[1-9][0-9]*)/extraction$#', static fn (Request $r, array $params): array => $dataWorkspaceController->documentExtraction($params));
+            $router->add('POST', '#^/documents/(?P<id>[1-9][0-9]*)/review$#', static fn (Request $r, array $params): array => $dataWorkspaceController->reviewDocument($params));
+            $router->add('GET', '#^/imports$#', static fn (): array => $dataWorkspaceController->importHistory());
+            $router->add('POST', '#^/imports/upload$#', static fn (Request $r): array => $dataWorkspaceController->uploadImport($r));
+            $router->add('GET', '#^/imports/templates/(?P<type>[a-z]+)$#', static fn (Request $r, array $params): array => $dataWorkspaceController->template($params));
+            $router->add('POST', '#^/imports/(?P<id>[1-9][0-9]*)/validate$#', static fn (Request $r, array $params): array => $dataWorkspaceController->validateImport($r, $params));
+            $router->add('POST', '#^/imports/(?P<id>[1-9][0-9]*)/commit$#', static fn (Request $r, array $params): array => $dataWorkspaceController->commitImport($params));
+            $router->add('POST', '#^/imports/(?P<id>[1-9][0-9]*)/rollback$#', static fn (Request $r, array $params): array => $dataWorkspaceController->rollbackImport($params));
+            $router->add('GET', '#^/integrations/organisations$#', static fn (): array => $dataWorkspaceController->integrationOrganisations());
+            $router->add('GET', '#^/integrations$#', static fn (Request $r): array => $dataWorkspaceController->integrations($r));
+            $router->add('POST', '#^/integrations$#', static fn (Request $r): array => $dataWorkspaceController->createIntegration($r));
+            $router->add('POST', '#^/integrations/test$#', static fn (Request $r): array => $dataWorkspaceController->testConnection($r));
+            $router->add('POST', '#^/integrations/(?P<id>[1-9][0-9]*)/activate$#', static fn (Request $r, array $params): array => $dataWorkspaceController->activateIntegration($r, $params));
+            $router->add('POST', '#^/integrations/(?P<id>[1-9][0-9]*)/sync$#', static fn (Request $r, array $params): array => $dataWorkspaceController->syncIntegration($r, $params));
             $router->dispatch($request);
         } catch (ApiException $exception) {
-            Response::json([
-                'error' => [
-                    'code' => $exception->errorCode,
-                    'message' => $exception->getMessage(),
-                    'details' => $exception->details === [] ? null : $exception->details
-                ]
-            ], $exception->status);
+            Response::error(
+                $exception->errorCode,
+                $exception->getMessage(),
+                $exception->details === [] ? null : $exception->details,
+                $exception->status
+            );
         } catch (Throwable $exception) {
-            $this->logger->error('Unhandled request exception', ['exception' => $exception::class]);
-            Response::json([
-                'error' => [
-                    'code' => 'internal_error',
-                    'message' => 'The service is temporarily unavailable.'
+            $referenceId = $this->logger->exception(
+                'Unhandled request exception',
+                $exception,
+                [
+                    'operation' => substr($request->method . ' ' . $request->path, 0, 256),
+                    'stage' => 'request_setup',
+                    'user_id' => isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null,
+                    'organisation_id' => isset($_SESSION['organisation_id'])
+                        ? (int) $_SESSION['organisation_id']
+                        : null
                 ]
-            ], 500);
+            );
+            Response::error('internal_error', 'The service is temporarily unavailable.', null, 500, $referenceId);
         }
     }
 
@@ -204,16 +304,14 @@ final class Application
 
         $allowedOrigins = $this->config->get('allowed_origins');
         if (!in_array($origin, $allowedOrigins, true)) {
-            Response::json([
-                'error' => ['code' => 'origin_not_allowed', 'message' => 'This origin is not allowed.']
-            ], 403);
+            Response::error('origin_not_allowed', 'This origin is not allowed.', null, 403);
             return false;
         }
 
         header('Access-Control-Allow-Origin: ' . $origin);
         header('Access-Control-Allow-Credentials: true');
         header('Vary: Origin');
-        header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
+        header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token, Last-Event-ID');
         header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, OPTIONS');
         return true;
     }

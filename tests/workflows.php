@@ -5,6 +5,7 @@ require dirname(__DIR__) . '/backend/bootstrap.php';
 
 use Vantiq\Http\ApiException;
 use Vantiq\Repository\AuditRepository;
+use Vantiq\Repository\BusinessRepository;
 use Vantiq\Repository\EnterpriseWorkflowRepository;
 use Vantiq\Repository\LedgerRepository;
 
@@ -18,6 +19,8 @@ CREATE TABLE audit_logs (
   entity_name TEXT NOT NULL, details TEXT, created_at TEXT
 );
 CREATE TABLE branches (id INTEGER PRIMARY KEY, organisation_id INTEGER NOT NULL, name TEXT);
+CREATE TABLE users (id INTEGER PRIMARY KEY, full_name TEXT NOT NULL);
+INSERT INTO users (id, full_name) VALUES (10, 'Workflow Test User');
 CREATE TABLE customers (
   id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, name TEXT NOT NULL,
   email TEXT, status TEXT NOT NULL DEFAULT 'active', created_at TEXT
@@ -37,7 +40,7 @@ CREATE TABLE invoices (
   paid_amount DECIMAL(18,2) NOT NULL, status TEXT NOT NULL, sale_id INTEGER, created_at TEXT
 );
 CREATE TABLE invoice_items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, invoice_id INTEGER NOT NULL, product_id INTEGER, description TEXT NOT NULL,
+  id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, invoice_id INTEGER NOT NULL, product_id INTEGER, description TEXT NOT NULL,
   quantity INTEGER NOT NULL, unit_price DECIMAL(18,2) NOT NULL, unit_cost DECIMAL(18,2) NOT NULL DEFAULT 0,
   total DECIMAL(18,2) NOT NULL
 );
@@ -46,13 +49,27 @@ CREATE TABLE payments (
   payment_date TEXT NOT NULL, amount DECIMAL(18,2) NOT NULL, method TEXT NOT NULL, reference TEXT, created_at TEXT
 );
 CREATE TABLE sales (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, branch_id INTEGER, customer_id INTEGER,
+  id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, branch_id INTEGER, department_id INTEGER, customer_id INTEGER,
   sale_date TEXT NOT NULL, subtotal DECIMAL(18,2), discount DECIMAL(18,2), tax DECIMAL(18,2),
   total DECIMAL(18,2), status TEXT NOT NULL, created_at TEXT
 );
+CREATE TABLE expenses (organisation_id INTEGER NOT NULL, amount DECIMAL(18,2) NOT NULL);
 CREATE TABLE sale_items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, sale_id INTEGER NOT NULL, product_id INTEGER NOT NULL,
+  id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, sale_id INTEGER NOT NULL, product_id INTEGER NOT NULL,
   quantity INTEGER NOT NULL, unit_price DECIMAL(18,2), unit_cost DECIMAL(18,2), discount DECIMAL(18,2), total DECIMAL(18,2)
+);
+CREATE TABLE decision_scenarios (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, name TEXT NOT NULL, description TEXT,
+  status TEXT NOT NULL, created_by_user_id INTEGER, created_at TEXT
+);
+CREATE TABLE scenario_assumptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, scenario_id INTEGER NOT NULL,
+  assumption_key TEXT NOT NULL, assumption_value TEXT NOT NULL, comment TEXT, created_at TEXT
+);
+CREATE TABLE scenario_results (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, scenario_id INTEGER NOT NULL,
+  label TEXT NOT NULL, metric_name TEXT NOT NULL, actual_value DECIMAL(18,2), projected_value DECIMAL(18,2) NOT NULL,
+  variance DECIMAL(18,2), created_at TEXT
 );
 CREATE TABLE credit_notes (
   id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, invoice_id INTEGER NOT NULL,
@@ -60,7 +77,7 @@ CREATE TABLE credit_notes (
   total DECIMAL(18,2), stock_returned INTEGER, created_by_user_id INTEGER, created_at TEXT
 );
 CREATE TABLE credit_note_items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, credit_note_id INTEGER NOT NULL, invoice_item_id INTEGER NOT NULL,
+  id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, credit_note_id INTEGER NOT NULL, invoice_item_id INTEGER NOT NULL,
   product_id INTEGER, quantity INTEGER NOT NULL, returned_quantity INTEGER NOT NULL, unit_price DECIMAL(18,2),
   unit_cost DECIMAL(18,2), subtotal DECIMAL(18,2), tax_amount DECIMAL(18,2), total DECIMAL(18,2)
 );
@@ -74,7 +91,7 @@ CREATE TABLE purchase_orders (
   branch_id INTEGER, order_date TEXT NOT NULL, expected_date TEXT, status TEXT NOT NULL, total DECIMAL(18,2), created_at TEXT
 );
 CREATE TABLE purchase_order_items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, purchase_order_id INTEGER NOT NULL, product_id INTEGER NOT NULL,
+  id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, purchase_order_id INTEGER NOT NULL, product_id INTEGER NOT NULL,
   quantity INTEGER NOT NULL, unit_cost DECIMAL(18,2) NOT NULL, total DECIMAL(18,2) NOT NULL
 );
 CREATE TABLE stock_movements (
@@ -90,6 +107,7 @@ SQL);
 
 $workflow = new EnterpriseWorkflowRepository($pdo, new AuditRepository($pdo));
 $ledger = new LedgerRepository($pdo, new AuditRepository($pdo));
+$business = new BusinessRepository($pdo, new AuditRepository($pdo));
 $tests = [];
 $test = static function (string $name, callable $run) use (&$tests): void {
     try {
@@ -121,8 +139,11 @@ $test('Invoice uses tenant product pricing and creates traceable invoice items',
     ]);
     $invoiceId = $invoice['id'];
     $item = $pdo->query('SELECT description, quantity, unit_price, total FROM invoice_items WHERE invoice_id = ' . (int) $invoiceId)->fetch();
+    $itemOrganisationId = $pdo->query('SELECT organisation_id FROM invoice_items WHERE invoice_id = ' . (int) $invoiceId)->fetchColumn();
+    $saleItemOrganisationId = $pdo->query('SELECT organisation_id FROM sale_items WHERE sale_id = 1')->fetchColumn();
     $assert((float) $invoice['total'] === 27.5, 'Invoice should use server prices and include the entered tax.');
     $assert($item['description'] === 'Widget' && (float) $item['unit_price'] === 12.5 && (float) $item['total'] === 25.0, 'Invoice item snapshot is invalid.');
+    $assert((int) $itemOrganisationId === 1 && (int) $saleItemOrganisationId === 1, 'Invoice child records must include their tenant.');
     $assert((int) $pdo->query('SELECT stock_level FROM products WHERE id = 1')->fetchColumn() === 0, 'Invoice issue must deduct the invoiced stock quantity.');
     $assert((int) $pdo->query('SELECT COUNT(*) FROM sales')->fetchColumn() === 1, 'Invoice revenue was not posted to the sales ledger.');
     $assert((int) $pdo->query('SELECT sale_id FROM invoices WHERE id = ' . (int) $invoiceId)->fetchColumn() === 1, 'Invoice-to-sale link is missing.');
@@ -160,6 +181,7 @@ $test('Partial and full credits refund settled invoice amounts with tax and stoc
     $assert($partial['total'] === 13.75 && $partial['tax_amount'] === 1.25 && $partial['refunded'] === true, 'Partial credit did not prorate tax or refund the paid amount correctly.');
     $assert((int) $pdo->query('SELECT stock_level FROM products WHERE id = 1')->fetchColumn() === 1, 'Returned item was not restocked.');
     $assert((int) $pdo->query("SELECT COUNT(*) FROM stock_movements WHERE reference_type = 'invoice_credit'")->fetchColumn() === 1, 'Stock return lacks a traceable credit movement.');
+    $assert((int) $pdo->query('SELECT organisation_id FROM credit_note_items LIMIT 1')->fetchColumn() === 1, 'Credit-note child records must include their tenant.');
 
     $full = $workflow->createCreditNote(1, 10, (int) $invoiceId, [
         'reason' => 'Remaining item returned.',
@@ -186,6 +208,7 @@ $test('Partial and full credits refund settled invoice amounts with tax and stoc
 });
 
 $test('Insufficient invoice stock rolls back invoice and revenue postings', static function () use ($workflow, $pdo, $assert): void {
+    $stockBefore = (int) $pdo->query('SELECT stock_level FROM products WHERE id = 1')->fetchColumn();
     try {
         $workflow->createInvoice(1, 10, [
             'customer_id' => 1,
@@ -204,7 +227,8 @@ $test('Insufficient invoice stock rolls back invoice and revenue postings', stat
     }
     $assert((int) $pdo->query('SELECT COUNT(*) FROM invoices')->fetchColumn() === 1, 'Failed invoice header was not rolled back.');
     $assert((int) $pdo->query('SELECT COUNT(*) FROM sales')->fetchColumn() === 1, 'Failed invoice sale was not rolled back.');
-    $assert((int) $pdo->query('SELECT stock_level FROM products WHERE id = 1')->fetchColumn() === 0, 'Failed invoice changed inventory.');
+    $stockAfter = (int) $pdo->query('SELECT stock_level FROM products WHERE id = 1')->fetchColumn();
+    $assert($stockAfter === $stockBefore, 'Failed invoice changed inventory.');
 });
 
 $test('Foreign tenant invoice and product references are rejected', static function () use ($workflow, $assert, &$invoiceId): void {
@@ -238,6 +262,24 @@ $test('Invoice sales cannot use point-of-sale refunds', static function () use (
     }
 });
 
+$test('Decision scenarios persist tenant-scoped assumptions and results', static function () use ($business, $pdo, $assert): void {
+    $result = $business->createDecisionScenario(1, 10, [
+        'name' => 'Tenant-scoped scenario',
+        'description' => '',
+        'status' => 'draft',
+        'assumptions' => ['revenue_growth' => 10],
+    ]);
+    $scenarioId = (int) $result['scenario']['scenario']['id'];
+    $assumptionOrganisationId = $pdo->query(
+        'SELECT organisation_id FROM scenario_assumptions WHERE scenario_id = ' . $scenarioId . ' LIMIT 1'
+    )->fetchColumn();
+    $resultOrganisationIds = $pdo->query(
+        'SELECT DISTINCT organisation_id FROM scenario_results WHERE scenario_id = ' . $scenarioId
+    )->fetchAll(PDO::FETCH_COLUMN);
+    $assert((int) $assumptionOrganisationId === 1, 'Scenario assumptions must include their tenant.');
+    $assert($resultOrganisationIds === [1], 'Scenario results must include their tenant.');
+});
+
 $test('Purchase-order receipt updates stock, weighted cost, and movement ledger once', static function () use ($workflow, $pdo, $assert): void {
     $order = $workflow->createPurchaseOrder(1, 10, [
         'supplier_id' => 1,
@@ -251,10 +293,14 @@ $test('Purchase-order receipt updates stock, weighted cost, and movement ledger 
     ]);
     $workflow->submitPurchaseOrder(1, 10, $order['id']);
     $received = $workflow->receivePurchaseOrder(1, 10, $order['id']);
+    $itemOrganisationIds = $pdo->query(
+        'SELECT DISTINCT organisation_id FROM purchase_order_items WHERE purchase_order_id = ' . (int) $order['id']
+    )->fetchAll(PDO::FETCH_COLUMN);
     $product = $pdo->query('SELECT stock_level, unit_cost FROM products WHERE id = 1')->fetch();
     $movement = $pdo->query("SELECT SUM(quantity) AS quantity, SUM(quantity * unit_cost) AS total_cost, COUNT(*) AS movement_count
       FROM stock_movements WHERE reference_type = 'purchase_order'")->fetch();
     $assert($received['status'] === 'received' && $received['item_count'] === 1, 'Purchase order was not received as a single aggregated product movement.');
+    $assert($itemOrganisationIds === [1], 'Purchase-order items must include their tenant.');
     $assert((int) $product['stock_level'] === 8 && (float) $product['unit_cost'] === 5.25, 'Receipt stock or weighted-average cost is incorrect.');
     $assert((int) $movement['quantity'] === 6 && (float) $movement['total_cost'] === 34.0 && (int) $movement['movement_count'] === 2, 'Receipt movements do not preserve the source order-line quantities and costs.');
     try {
@@ -285,6 +331,22 @@ $test('Purchase-order creation rejects foreign supplier and product IDs', static
         }
     }
     $assert((int) $pdo->query('SELECT COUNT(*) FROM purchase_orders')->fetchColumn() === 1, 'Rejected purchase orders were persisted.');
+});
+
+$test('Point-of-sale items persist their tenant', static function () use ($ledger, $pdo, $assert): void {
+    $sale = $ledger->createSale(1, 10, [
+        'branch_id' => null,
+        'department_id' => null,
+        'customer_id' => 1,
+        'sale_date' => '2025-03-01 00:00:00',
+        'discount' => 0,
+        'tax' => 0,
+        'items' => [['product_id' => 1, 'quantity' => 1]],
+    ]);
+    $organisationId = $pdo->query(
+        'SELECT organisation_id FROM sale_items WHERE sale_id = ' . (int) $sale['id']
+    )->fetchColumn();
+    $assert((int) $organisationId === 1, 'Point-of-sale child records must include their tenant.');
 });
 
 $failed = 0;

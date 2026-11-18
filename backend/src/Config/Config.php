@@ -46,7 +46,11 @@ final class Config
             'db_password' => self::env('DB_PASSWORD', ''),
             'mail_transport' => self::env('MAIL_TRANSPORT', ''),
             'mail_from' => self::env('MAIL_FROM', ''),
-            'reset_url' => self::env('RESET_URL', '')
+            'reset_url' => self::env('RESET_URL', ''),
+            'private_storage_path' => self::env(
+                'PRIVATE_STORAGE_PATH',
+                dirname(dirname($projectRoot)) . DIRECTORY_SEPARATOR . 'vantiq-private-storage'
+            )
         ];
 
         if (strlen($values['app_key']) < 32) {
@@ -74,6 +78,27 @@ final class Config
         if ($values['session_idle_timeout'] < 60 || $values['session_absolute_timeout'] < $values['session_idle_timeout']) {
             throw new RuntimeException('Session timeout configuration is invalid.');
         }
+
+        $storagePath = $values['private_storage_path'];
+        if (!preg_match('/^(?:[a-zA-Z]:[\\\\\/]|\\\\\\\\|\/)/', $storagePath)) {
+            throw new RuntimeException('PRIVATE_STORAGE_PATH must be an absolute path.');
+        }
+        $storageParent = realpath(dirname($storagePath));
+        if ($storageParent === false) {
+            throw new RuntimeException('The parent directory for PRIVATE_STORAGE_PATH must exist.');
+        }
+        $storagePath = $storageParent . DIRECTORY_SEPARATOR . basename($storagePath);
+        $applicationRoot = realpath($projectRoot) ?: $projectRoot;
+        $webRoot = realpath(dirname($applicationRoot)) ?: dirname($applicationRoot);
+        foreach ([$applicationRoot, $webRoot] as $protectedPath) {
+            $protectedPath = rtrim($protectedPath, DIRECTORY_SEPARATOR);
+            $candidate = strtolower($storagePath);
+            $protected = strtolower($protectedPath);
+            if ($candidate === $protected || str_starts_with($candidate, $protected . DIRECTORY_SEPARATOR)) {
+                throw new RuntimeException('PRIVATE_STORAGE_PATH must be outside the web root and application.');
+            }
+        }
+        $values['private_storage_path'] = $storagePath;
 
         return new self($values);
     }

@@ -1,0 +1,40 @@
+CREATE TABLE IF NOT EXISTS outbox_events (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    event_id CHAR(36) NOT NULL,
+    organisation_id BIGINT UNSIGNED NOT NULL,
+    aggregate_type VARCHAR(64) NOT NULL,
+    aggregate_id VARCHAR(128) NOT NULL,
+    event_type VARCHAR(100) NOT NULL,
+    event_version SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+    event_payload JSON NOT NULL,
+    status ENUM('pending', 'processing', 'published', 'failed') NOT NULL DEFAULT 'pending',
+    attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    available_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    locked_at DATETIME DEFAULT NULL,
+    lock_token CHAR(36) DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    processed_at DATETIME DEFAULT NULL,
+    last_error VARCHAR(160) DEFAULT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_outbox_event_id (event_id),
+    KEY idx_outbox_dispatch (status, available_at, id),
+    KEY idx_outbox_org_sequence (organisation_id, id),
+    CONSTRAINT fk_outbox_organisation FOREIGN KEY (organisation_id) REFERENCES organisations(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS event_notifications (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    outbox_id BIGINT UNSIGNED NOT NULL,
+    event_id CHAR(36) NOT NULL,
+    organisation_id BIGINT UNSIGNED NOT NULL,
+    event_type VARCHAR(100) NOT NULL,
+    summary VARCHAR(200) NOT NULL,
+    modules JSON NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_event_notification_outbox (outbox_id),
+    UNIQUE KEY uq_event_notification_event (event_id),
+    KEY idx_event_notifications_org_sequence (organisation_id, id),
+    CONSTRAINT fk_event_notifications_outbox FOREIGN KEY (outbox_id) REFERENCES outbox_events(id) ON DELETE CASCADE,
+    CONSTRAINT fk_event_notifications_organisation FOREIGN KEY (organisation_id) REFERENCES organisations(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

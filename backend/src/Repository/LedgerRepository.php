@@ -10,7 +10,8 @@ final class LedgerRepository
 {
     public function __construct(
         private readonly PDO $pdo,
-        private readonly AuditRepository $audit
+        private readonly AuditRepository $audit,
+        private readonly ?OutboxRepository $outbox = null
     ) {
     }
 
@@ -60,6 +61,7 @@ final class LedgerRepository
             ]);
             $productId = (int) $this->pdo->lastInsertId();
             $this->audit->record($organisationId, $userId, 'product.created', 'product', ['product_id' => $productId]);
+            $this->outbox?->enqueue($organisationId, 'product', $productId, 'ProductCreated', ['product_id' => $productId]);
             $this->pdo->commit();
             return ['id' => $productId, 'stock_level' => 0];
         } catch (\Throwable $exception) {
@@ -159,8 +161,8 @@ final class LedgerRepository
             ]);
             $saleId = (int) $this->pdo->lastInsertId();
             $itemInsert = $this->pdo->prepare(
-                'INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, unit_cost, discount, total)
-                 VALUES (:sale_id, :product_id, :quantity, :unit_price, :unit_cost, 0, :total)'
+                'INSERT INTO sale_items (organisation_id, sale_id, product_id, quantity, unit_price, unit_cost, discount, total)
+                 VALUES (:organisation_id, :sale_id, :product_id, :quantity, :unit_price, :unit_cost, 0, :total)'
             );
             $stockUpdate = $this->pdo->prepare(
                 'UPDATE products SET stock_level = stock_level - :quantity
@@ -174,6 +176,7 @@ final class LedgerRepository
             );
             foreach ($items as $item) {
                 $itemInsert->execute([
+                    'organisation_id' => $organisationId,
                     'sale_id' => $saleId,
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
@@ -202,6 +205,11 @@ final class LedgerRepository
             }
 
             $this->audit->record($organisationId, $userId, 'sale.posted', 'sale', [
+                'sale_id' => $saleId,
+                'total' => $total,
+                'item_count' => count($items),
+            ]);
+            $this->outbox?->enqueue($organisationId, 'sale', $saleId, 'SaleCreated', [
                 'sale_id' => $saleId,
                 'total' => $total,
                 'item_count' => count($items),
@@ -316,6 +324,7 @@ final class LedgerRepository
                 'amount' => $sale['total'],
                 'reason' => $reason,
             ]);
+            $this->outbox?->enqueue($organisationId, 'sale', $saleId, 'SaleCancelled', ['sale_id' => $saleId]);
             $this->pdo->commit();
             return ['id' => $saleId, 'status' => 'refunded', 'amount' => (float) $sale['total']];
         } catch (\Throwable $exception) {
@@ -350,6 +359,10 @@ final class LedgerRepository
             ]);
             $expenseId = (int) $this->pdo->lastInsertId();
             $this->audit->record($organisationId, $userId, 'expense.created', 'expense', [
+                'expense_id' => $expenseId,
+                'amount' => $input['amount'],
+            ]);
+            $this->outbox?->enqueue($organisationId, 'expense', $expenseId, 'ExpenseCreated', [
                 'expense_id' => $expenseId,
                 'amount' => $input['amount'],
             ]);
@@ -454,6 +467,13 @@ final class LedgerRepository
                 'movement_type' => $type,
                 'quantity' => $delta,
             ]);
+            $this->outbox?->enqueue(
+                $organisationId,
+                'product',
+                $productId,
+                $type === 'receipt' || $type === 'return' ? 'StockReceived' : 'StockAdjusted',
+                ['movement_id' => $movementId, 'product_id' => $productId, 'movement_type' => $type]
+            );
             $this->pdo->commit();
             return ['id' => $movementId, 'product_id' => $productId, 'stock_level' => $nextStock];
         } catch (\Throwable $exception) {

@@ -9,12 +9,28 @@ use Vantiq\Http\Request;
 use Vantiq\Infrastructure\Database;
 use Vantiq\Infrastructure\Logger;
 
+$request = null;
 try {
     $config = Config::load(dirname(__DIR__));
-    $database = Database::connect($config);
-    (new Application($config, $database, new Logger()))->handle(Request::fromGlobals());
+    $logger = new Logger();
+    $request = Request::fromGlobals();
+    try {
+        $database = Database::connect($config);
+    } catch (Throwable $exception) {
+        $referenceId = $logger->exception('Database connection failed', $exception, [
+            'operation' => substr($request->method . ' ' . $request->path, 0, 256),
+            'stage' => 'database_connect'
+        ]);
+        (new Application($config, null, $logger, $referenceId))->handle($request);
+        return;
+    }
+    (new Application($config, $database, $logger))->handle($request);
 } catch (Throwable $exception) {
-    (new Logger())->error('Application bootstrap failed', ['exception' => $exception::class]);
+    $context = ['operation' => 'API bootstrap', 'stage' => 'bootstrap'];
+    if ($request instanceof Request) {
+        $context['operation'] = substr($request->method . ' ' . $request->path, 0, 256);
+    }
+    $referenceId = (new Logger())->exception('Application bootstrap failed', $exception, $context);
     http_response_code(500);
     header_remove('X-Powered-By');
     header('Content-Type: application/json; charset=utf-8');
@@ -24,9 +40,13 @@ try {
     header('Referrer-Policy: no-referrer');
     header("Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
     echo json_encode([
+        'success' => false,
+        'data' => null,
         'error' => [
             'code' => 'internal_error',
-            'message' => 'The service is temporarily unavailable.'
+            'message' => 'The service is temporarily unavailable.',
+            'details' => null,
+            'reference_id' => $referenceId
         ]
     ]);
 }

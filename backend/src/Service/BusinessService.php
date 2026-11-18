@@ -71,6 +71,11 @@ final class BusinessService
         return $this->repository->adminRoles($organisationId);
     }
 
+    public function adminAuditLogs(int $organisationId): array
+    {
+        return $this->repository->adminAuditLogs($organisationId);
+    }
+
     public function createBranch(int $organisationId, int $userId, string $name, string $code): array
     {
         return $this->repository->createBranch($organisationId, $userId, $name, $code);

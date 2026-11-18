@@ -14,11 +14,13 @@ final class RoleRepository
     public function createOrganisationRoles(int $organisationId): int
     {
         $roles = [
-            'Organisation Owner' => ['users.manage', 'finance.read', 'finance.write', 'operations.read', 'operations.write', 'connect.manage', 'decisions.manage', 'risks.read', 'risks.manage', 'reports.read'],
+            'Organisation Owner' => ['users.manage', 'finance.read', 'finance.write', 'operations.read', 'operations.write', 'connect.manage', 'decisions.manage', 'risks.read', 'risks.manage', 'reports.read', 'documents.read', 'documents.upload', 'data.import', 'integrations.manage'],
             'Executive / Director' => ['finance.read', 'operations.read', 'decisions.manage', 'risks.read', 'risks.manage', 'reports.read'],
             'Department Manager' => ['operations.read', 'risks.read', 'reports.read'],
-            'Financial Analyst' => ['finance.read', 'finance.write', 'risks.read', 'reports.read'],
-            'Operations Manager' => ['operations.read', 'operations.write', 'connect.manage', 'risks.read', 'risks.manage', 'reports.read']
+            'Financial Analyst' => ['finance.read', 'finance.write', 'risks.read', 'reports.read', 'documents.read', 'documents.upload', 'data.import'],
+            'Finance Manager' => ['finance.read', 'finance.write', 'reports.read', 'documents.read', 'documents.upload', 'data.import'],
+            'Business Analyst' => ['reports.read', 'documents.read', 'documents.upload', 'data.import'],
+            'Operations Manager' => ['operations.read', 'operations.write', 'connect.manage', 'risks.read', 'risks.manage', 'reports.read', 'documents.read', 'documents.upload', 'data.import']
         ];
 
         $roleInsert = $this->pdo->prepare(
@@ -115,6 +117,34 @@ final class RoleRepository
         );
         $statement->execute(['organisation_id' => $organisationId]);
         return $statement->fetchAll();
+    }
+
+    public function permissionsForRoles(int $organisationId, array $roleIds): array
+    {
+        if ($roleIds === []) {
+            return [];
+        }
+
+        $placeholders = [];
+        $parameters = ['organisation_id' => $organisationId];
+        foreach (array_values(array_unique($roleIds)) as $index => $roleId) {
+            $placeholder = 'role_' . $index;
+            $placeholders[] = ':' . $placeholder;
+            $parameters[$placeholder] = $roleId;
+        }
+
+        $statement = $this->pdo->prepare(
+            'SELECT DISTINCT p.code
+             FROM role_permissions rp
+             JOIN permissions p ON p.id = rp.permission_id
+             JOIN roles r ON r.id = rp.role_id
+             WHERE r.organisation_id = :organisation_id
+               AND r.is_system = 0
+               AND r.id IN (' . implode(', ', $placeholders) . ')
+             ORDER BY p.code'
+        );
+        $statement->execute($parameters);
+        return array_column($statement->fetchAll(), 'code');
     }
 
     public function userHasOrganisationRole(int $userId, int $organisationId, int $roleId): bool

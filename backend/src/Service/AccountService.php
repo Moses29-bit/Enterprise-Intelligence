@@ -85,6 +85,12 @@ final class AccountService
             throw new ApiException(422, 'self_role_change_forbidden', 'You cannot change your own roles.');
         }
 
+        $actorPermissions = $this->roles->permissionsForUser((int) $actor['id']);
+        $requestedPermissions = $this->roles->permissionsForRoles($organisationId, $roleIds);
+        if (array_diff($requestedPermissions, $actorPermissions) !== []) {
+            throw new ApiException(403, 'permission_escalation_forbidden', 'You cannot grant permissions you do not hold.');
+        }
+
         $availableRoles = $this->roles->organisationRoles($organisationId);
         $ownerRoleId = null;
         foreach ($availableRoles as $role) {

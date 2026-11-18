@@ -1,4 +1,12 @@
 :root {
+  --font-display: 'Manrope', sans-serif;
+  --font-ui: 'Inter', sans-serif;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+
   --emerald-900: #103b30;
   --emerald-800: #164f42;
   --graphite-900: #18221f;
@@ -29,7 +37,13 @@ html, body {
   min-height: 100%;
   background: linear-gradient(180deg, #eef1ee 0%, #f5f3ef 100%);
   color: var(--graphite-900);
-  font-family: Inter, "Segoe UI", sans-serif;
+  font-family: var(--font-ui);
+}
+
+html {
+  font-size: 14px;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -38,6 +52,32 @@ body {
 
 button, input {
   font: inherit;
+}
+
+body, button, input, textarea, select {
+  font-family: var(--font-ui);
+}
+
+h1, h2, h3, h4, .page-title, .dashboard-heading, .brand-heading {
+  font-family: var(--font-display);
+  letter-spacing: -0.035em;
+}
+
+h1 {
+  font-weight: var(--font-weight-extrabold);
+}
+
+h2, h3, h4 {
+  font-weight: var(--font-weight-bold);
+}
+
+button, label, .navigation-item {
+  font-weight: var(--font-weight-medium);
+}
+
+table, .financial-value, .kpi-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 button {

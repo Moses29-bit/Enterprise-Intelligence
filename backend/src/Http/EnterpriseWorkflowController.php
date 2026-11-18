@@ -4,17 +4,18 @@ declare(strict_types=1);
 namespace Vantiq\Http;
 
 use DateTimeImmutable;
-use Vantiq\Repository\RoleRepository;
 use Vantiq\Security\AuthMiddleware;
+use Vantiq\Security\PermissionMiddleware;
 use Vantiq\Service\EnterpriseWorkflowService;
 
-final class EnterpriseWorkflowController
+final class EnterpriseWorkflowController extends Controller
 {
     public function __construct(
         private readonly EnterpriseWorkflowService $service,
-        private readonly AuthMiddleware $middleware,
-        private readonly RoleRepository $roles
+        AuthMiddleware $middleware,
+        PermissionMiddleware $permissions
     ) {
+        parent::__construct($middleware, $permissions);
     }
 
     public function invoices(): array
@@ -291,19 +292,6 @@ final class EnterpriseWorkflowController
             (int) $user['id'],
             (int) $params['id']
         );
-    }
-
-    private function tenantUser(string $permission): array
-    {
-        $user = $this->middleware->requireUser();
-        if ($user['organisation_id'] === null) {
-            throw new ApiException(403, 'tenant_required', 'This operation requires an organisation account.');
-        }
-        if (!$this->roles->hasPermission((int) $user['id'], $permission)
-            && !$this->roles->hasPermission((int) $user['id'], 'platform.users.manage')) {
-            throw new ApiException(403, 'forbidden', 'You do not have permission to access this business operation.');
-        }
-        return $user;
     }
 
     private function money(array $input, string $field, bool $mustBePositive = false): string

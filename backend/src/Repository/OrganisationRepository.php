@@ -29,6 +29,14 @@ final class OrganisationRepository
         return $row ?: null;
     }
 
+    public function activeOrganisations(): array
+    {
+        $statement = $this->pdo->query(
+            "SELECT id, name FROM organisations WHERE status = 'active' ORDER BY name ASC"
+        );
+        return $statement->fetchAll();
+    }
+
     public function slugExists(string $slug): bool
     {
         $statement = $this->pdo->prepare('SELECT 1 FROM organisations WHERE slug = :slug');

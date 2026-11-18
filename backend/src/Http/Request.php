@@ -7,27 +7,44 @@ use JsonException;
 
 final class Request
 {
+    public const MAX_JSON_BYTES = 65536;
+    public const MAX_MULTIPART_BYTES = 16777216;
+    private const MAX_CAPTURED_BODY_BYTES = 5242880;
+
     public function __construct(
         public readonly string $method,
         public readonly string $path,
         public readonly array $headers,
         public readonly array $query,
         public readonly string $body,
-        public readonly string $ip
+        public readonly string $ip,
+        public readonly array $files = [],
+        public readonly array $form = []
     ) {
     }
 
     public static function fromGlobals(): self
     {
-        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        $headers = [];
+        if (function_exists('getallheaders')) {
+            $receivedHeaders = getallheaders();
+            if (is_array($receivedHeaders)) {
+                foreach ($receivedHeaders as $name => $value) {
+                    if (is_string($value)) {
+                        $headers[strtolower((string) $name)] = $value;
+                    }
+                }
+            }
+        }
+
         foreach ($_SERVER as $key => $value) {
-            if (str_starts_with($key, 'HTTP_')) {
-                $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
+            if (is_string($key) && str_starts_with($key, 'HTTP_') && is_string($value)) {
+                $name = strtolower(str_replace('_', '-', substr($key, 5)));
                 $headers[$name] ??= $value;
             }
         }
-        if (isset($_SERVER['CONTENT_TYPE'])) {
-            $headers['Content-Type'] ??= $_SERVER['CONTENT_TYPE'];
+        if (isset($_SERVER['CONTENT_TYPE']) && is_string($_SERVER['CONTENT_TYPE'])) {
+            $headers['content-type'] ??= $_SERVER['CONTENT_TYPE'];
         }
 
         $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -36,19 +53,28 @@ final class Request
             $path = '/' . ltrim(substr($path, $start), '/');
         }
 
+        $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        $body = '';
+        $contentType = strtolower(trim(explode(';', $headers['content-type'] ?? '', 2)[0]));
+        if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true) && $contentType !== 'multipart/form-data') {
+            $body = file_get_contents('php://input', false, null, 0, self::MAX_CAPTURED_BODY_BYTES + 1) ?: '';
+        }
+
         return new self(
-            strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET'),
+            $method,
             rtrim($path, '/') ?: '/',
-            self::normalizeHeaders($headers),
+            $headers,
             $_GET,
-            file_get_contents('php://input') ?: '',
-            $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+            $body,
+            $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            $_FILES,
+            $_POST
         );
     }
 
     public function json(): array
     {
-        if (strlen($this->body) > 65536) {
+        if (strlen($this->body) > self::MAX_JSON_BYTES) {
             throw new ApiException(413, 'payload_too_large', 'The request body is too large.');
         }
 
@@ -71,18 +97,36 @@ final class Request
 
     public function header(string $name): ?string
     {
-        return $this->headers[strtolower($name)] ?? null;
-    }
-
-    private static function normalizeHeaders(array $headers): array
-    {
-        $normalized = [];
-        foreach ($headers as $name => $value) {
-            if (is_string($value)) {
-                $normalized[strtolower((string) $name)] = $value;
+        $name = strtolower($name);
+        foreach ($this->headers as $headerName => $value) {
+            if (is_string($headerName) && strtolower($headerName) === $name && is_string($value)) {
+                return $value;
             }
         }
 
-        return $normalized;
+        return null;
+    }
+
+    public function isJson(): bool
+    {
+        $contentType = $this->header('content-type');
+        return $contentType !== null
+            && strtolower(trim(explode(';', $contentType, 2)[0])) === 'application/json';
+    }
+
+    public function isMultipart(): bool
+    {
+        $contentType = $this->header('content-type');
+        return $contentType !== null
+            && strtolower(trim(explode(';', $contentType, 2)[0])) === 'multipart/form-data';
+    }
+
+    public function contentLength(): ?int
+    {
+        $length = $this->header('content-length');
+        if ($length === null || !ctype_digit($length)) {
+            return null;
+        }
+        return (int) $length;
     }
 }

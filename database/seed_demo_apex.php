@@ -102,7 +102,8 @@ if ($organisationId === 0) {
              VALUES (:organisation_id, :branch_id, :department_id, :customer_id, :sale_date, :subtotal, :discount, :tax, :total, :status, CURRENT_TIMESTAMP)'
         );
         $saleItemInsert = $pdo->prepare(
-            'INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, discount, total) VALUES (:sale_id, :product_id, :quantity, :unit_price, :discount, :total)'
+            'INSERT INTO sale_items (organisation_id, sale_id, product_id, quantity, unit_price, discount, total)
+             VALUES (:organisation_id, :sale_id, :product_id, :quantity, :unit_price, :discount, :total)'
         );
 
         $saleData = [
@@ -128,6 +129,7 @@ if ($organisationId === 0) {
             $saleIds[] = $saleId;
             foreach ($saleDatum['items'] as $item) {
                 $saleItemInsert->execute([
+                    'organisation_id' => $organisationId,
                     'sale_id' => $saleId,
                     'product_id' => $productIds[$item['sku']],
                     'quantity' => $item['quantity'],
@@ -196,9 +198,13 @@ if ($organisationId === 0) {
             'total' => '6300.00',
         ]);
         $orderId = (int) $pdo->lastInsertId();
-        $poItemInsert = $pdo->prepare('INSERT INTO purchase_order_items (purchase_order_id, product_id, quantity, unit_cost, total) VALUES (:purchase_order_id, :product_id, :quantity, :unit_cost, :total)');
+        $poItemInsert = $pdo->prepare(
+            'INSERT INTO purchase_order_items (organisation_id, purchase_order_id, product_id, quantity, unit_cost, total)
+             VALUES (:organisation_id, :purchase_order_id, :product_id, :quantity, :unit_cost, :total)'
+        );
         foreach ([['sku' => 'APX-100', 'quantity' => 15, 'unit_cost' => 260.00], ['sku' => 'APX-200', 'quantity' => 10, 'unit_cost' => 160.00]] as $line) {
             $poItemInsert->execute([
+                'organisation_id' => $organisationId,
                 'purchase_order_id' => $orderId,
                 'product_id' => $productIds[$line['sku']],
                 'quantity' => $line['quantity'],
@@ -251,8 +257,17 @@ if ($organisationId === 0) {
         ]);
         $forecastId = (int) $pdo->lastInsertId();
 
-        $forecastResultInsert = $pdo->prepare('INSERT INTO forecast_results (forecast_id, period_label, actual_value, projected_value, created_at) VALUES (:forecast_id, :period_label, :actual_value, :projected_value, CURRENT_TIMESTAMP)');
-        $forecastResultInsert->execute(['forecast_id' => $forecastId, 'period_label' => 'Q4 2026', 'actual_value' => '140000.00', 'projected_value' => '153500.00']);
+        $forecastResultInsert = $pdo->prepare(
+            'INSERT INTO forecast_results (organisation_id, forecast_id, period_label, actual_value, projected_value, created_at)
+             VALUES (:organisation_id, :forecast_id, :period_label, :actual_value, :projected_value, CURRENT_TIMESTAMP)'
+        );
+        $forecastResultInsert->execute([
+            'organisation_id' => $organisationId,
+            'forecast_id' => $forecastId,
+            'period_label' => 'Q4 2026',
+            'actual_value' => '140000.00',
+            'projected_value' => '153500.00'
+        ]);
 
         $scenarioInsert = $pdo->prepare('INSERT INTO decision_scenarios (organisation_id, name, description, status, created_by_user_id, created_at) VALUES (:organisation_id, :name, :description, :status, :created_by_user_id, CURRENT_TIMESTAMP)');
         $scenarioInsert->execute([

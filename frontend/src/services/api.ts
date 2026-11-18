@@ -10,9 +10,63 @@ export interface AuthUser {
   permissions: string[];
 }
 
+export interface HealthStatus {
+  status: 'ok' | 'degraded';
+  php_version: string;
+  database: { connected: boolean };
+}
+
+export interface DocumentRecord {
+  id: number;
+  version_group: string;
+  version_number: number;
+  original_name: string;
+  mime_type: string;
+  file_size: number;
+  category: string;
+  extraction_status: 'available' | 'unsupported' | 'failed';
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+export interface IntegrationOrganisation {
+  id: number;
+  name: string;
+}
+
+export interface ImportBatch {
+  id: number;
+  file_name: string;
+  data_type: string;
+  status: string;
+  row_count: number;
+  error_count: number;
+  created_at: string;
+  committed_at: string | null;
+}
+
+export interface IntegrationRecord {
+  id: number;
+  name: string;
+  category: string;
+  connector_type: string;
+  endpoint_url: string;
+  field_mappings: Record<string, string>;
+  sync_schedule: string;
+  status: string;
+  last_synced_at: string | null;
+  records_synced: number;
+  last_error: string | null;
+}
+
 interface ApiEnvelope<T> {
   data?: T;
-  error?: { code: string; message: string; details?: Record<string, string> | null };
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, string> | null;
+    reference_id?: string;
+  };
 }
 
 export class ApiError extends Error {
@@ -21,6 +75,7 @@ export class ApiError extends Error {
     public readonly status: number,
     public readonly code: string,
     public readonly details?: Record<string, string> | null,
+    public readonly referenceId?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -34,7 +89,8 @@ declare module 'axios' {
 }
 
 const client = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL?.trim() || '/api',
+  timeout: 8000,
   withCredentials: true,
   headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
 });
@@ -89,8 +145,9 @@ client.interceptors.response.use((response) => {
   return Promise.reject(new ApiError(
     payload?.message ?? 'The request could not be completed.',
     status,
-    payload?.code ?? 'network_error',
+    payload?.code ?? error.code ?? 'network_error',
     payload?.details,
+    payload?.reference_id,
   ));
 });
 
@@ -103,7 +160,8 @@ async function data<T>(request: Promise<{ data: ApiEnvelope<T> }>): Promise<T> {
 }
 
 export const authApi = {
-  me: () => data(client.get<ApiEnvelope<{ user: AuthUser }>>('/auth/me')).then((result) => result.user),
+  me: (signal?: AbortSignal) =>
+    data(client.get<ApiEnvelope<{ user: AuthUser }>>('/auth/me', { signal })).then((result) => result.user),
   login: (email: string, password: string) =>
     data(client.post<ApiEnvelope<{ user: AuthUser; csrfToken: string }>>('/auth/login', { email, password }))
       .then((result) => result.user),
@@ -120,6 +178,11 @@ export const authApi = {
     data(client.post<ApiEnvelope<{ message: string }>>('/auth/forgot-password', { email })),
   resetPassword: (token: string, password: string) =>
     data(client.post<ApiEnvelope<{ reset: boolean }>>('/auth/reset-password', { token, password })),
+};
+
+export const healthApi = {
+  check: (signal?: AbortSignal) =>
+    data(client.get<ApiEnvelope<HealthStatus>>('/health', { signal })),
 };
 
 export const moduleApi = {
@@ -140,6 +203,62 @@ export const moduleApi = {
   decisionScenarioDetail: (scenarioId: number) =>
     data(client.get<ApiEnvelope<Record<string, unknown>>>(`/decisions/scenarios/${scenarioId}`)),
   importsHistory: () => data(client.get<ApiEnvelope<Record<string, unknown>>>('/connect/imports')),
+  documents: (search = '', category = '') =>
+    data(client.get<ApiEnvelope<{ documents: DocumentRecord[]; categories: string[] }>>('/documents', {
+      params: { search, category },
+    })),
+  uploadDocument: (form: FormData) =>
+    data(client.post<ApiEnvelope<{ document: { id: number; version: number }; duplicate: boolean; extraction_status: string; text: string }>>(
+      '/documents/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } },
+    )),
+  documentVersions: (group: string) =>
+    data(client.get<ApiEnvelope<{ versions: Array<Record<string, unknown>> }>>(`/documents/versions/${encodeURIComponent(group)}`)),
+  documentExtraction: (id: number) =>
+    data(client.get<ApiEnvelope<{ extraction: { id: number; original_name: string; extracted_text: string | null; extraction_status: string; reviewed_at: string | null } }>>(`/documents/${id}/extraction`)),
+  reviewDocument: (id: number) =>
+    data(client.post<ApiEnvelope<{ reviewed: boolean }>>(`/documents/${id}/review`)),
+  uploadImport: (form: FormData) =>
+    data(client.post<ApiEnvelope<{
+      batch_id: number; file_name: string; data_type: string; headers: string[];
+      fields: string[]; rows: Array<Record<string, string>>; row_count: number;
+    }>>('/imports/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } })),
+  validateImport: (id: number, mapping: Record<string, string>) =>
+    data(client.post<ApiEnvelope<{
+      valid: boolean; row_count: number; error_count: number;
+      preview: Array<{ row: number; values: Record<string, string>; errors: string[] }>;
+    }>>(`/imports/${id}/validate`, { mapping })),
+  dataImportHistory: () =>
+    data(client.get<ApiEnvelope<{ imports: ImportBatch[] }>>('/imports')),
+  commitImport: (id: number) =>
+    data(client.post<ApiEnvelope<{ status: string; records_imported: number }>>(`/imports/${id}/commit`)),
+  rollbackImport: (id: number) =>
+    data(client.post<ApiEnvelope<{ status: string }>>(`/imports/${id}/rollback`)),
+  importTemplate: async (type: string) => {
+    const response = await client.get<Blob>(`/imports/templates/${encodeURIComponent(type)}`, { responseType: 'blob' });
+    return response.data;
+  },
+  integrationOrganisations: () =>
+    data(client.get<ApiEnvelope<{ organisations: IntegrationOrganisation[] }>>('/integrations/organisations')),
+  integrations: (organisationId?: number) =>
+    data(client.get<ApiEnvelope<{ integrations: IntegrationRecord[] }>>('/integrations', {
+      params: organisationId ? { organisation_id: organisationId } : undefined,
+    })),
+  createIntegration: (payload: Record<string, unknown>, organisationId?: number) =>
+    data(client.post<ApiEnvelope<{ integration_id: number; status: string }>>('/integrations', {
+      ...payload, ...(organisationId ? { organisation_id: organisationId } : {}),
+    })),
+  testIntegration: (payload: Record<string, unknown>, organisationId?: number) =>
+    data(client.post<ApiEnvelope<{ connected: boolean; http_status: number; records_detected: number }>>('/integrations/test', {
+      ...payload, ...(organisationId ? { organisation_id: organisationId } : {}),
+    })),
+  activateIntegration: (id: number, organisationId?: number) =>
+    data(client.post<ApiEnvelope<{ status: string; records_synced: number }>>(`/integrations/${id}/activate`, null, {
+      params: organisationId ? { organisation_id: organisationId } : undefined,
+    })),
+  syncIntegration: (id: number, organisationId?: number) =>
+    data(client.post<ApiEnvelope<{ status: string; records_synced: number; message: string }>>(`/integrations/${id}/sync`, null, {
+      params: organisationId ? { organisation_id: organisationId } : undefined,
+    })),
   previewImport: (fileName: string, csv: string) =>
     data(client.post<ApiEnvelope<Record<string, unknown>>>('/connect/imports/preview', { file_name: fileName, csv })),
   adminOverview: () => data(client.get<ApiEnvelope<Record<string, unknown>>>('/admin/overview')),
@@ -147,6 +266,7 @@ export const moduleApi = {
   adminBranches: () => data(client.get<ApiEnvelope<Record<string, unknown>>>('/admin/branches')),
   adminDepartments: () => data(client.get<ApiEnvelope<Record<string, unknown>>>('/admin/departments')),
   adminRoles: () => data(client.get<ApiEnvelope<{ roles: AdminRole[] }>>('/admin/roles')),
+  adminAuditLogs: () => data(client.get<ApiEnvelope<{ audit_logs: AdminAuditLog[] }>>('/admin/audit-logs')),
   createBranch: (name: string, code: string) =>
     data(client.post<ApiEnvelope<{ id: number; name: string; code: string }>>('/admin/branches', { name, code })),
   createDepartment: (name: string, code: string, branchId?: number | null) =>
@@ -218,6 +338,16 @@ export interface AdminRole {
   id: number;
   name: string;
   description: string | null;
+  permissions: string | null;
+}
+
+export interface AdminAuditLog {
+  id: number;
+  action_type: string;
+  entity_name: string;
+  actor: string | null;
+  created_at: string;
+  metadata: Record<string, unknown>;
 }
 
 export interface NewProduct {
@@ -423,7 +553,11 @@ export interface FinancialReport {
 }
 
 export function getErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
+  if (error instanceof ApiError) {
+    return error.referenceId
+      ? `${error.message} Reference ID: ${error.referenceId}`
+      : error.message;
+  }
   if (axios.isAxiosError(error)) return 'The VANTIQ service could not be reached.';
   return error instanceof Error ? error.message : 'An unexpected error occurred.';
 }

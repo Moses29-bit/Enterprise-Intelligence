@@ -10,7 +10,8 @@ final class EnterpriseWorkflowRepository
 {
     public function __construct(
         private readonly PDO $pdo,
-        private readonly AuditRepository $audit
+        private readonly AuditRepository $audit,
+        private readonly ?OutboxRepository $outbox = null
     ) {
     }
 
@@ -109,6 +110,7 @@ final class EnterpriseWorkflowRepository
             ]);
             $id = (int) $this->pdo->lastInsertId();
             $this->audit->record($organisationId, $userId, 'customer.created', 'customer', ['customer_id' => $id]);
+            $this->outbox?->enqueue($organisationId, 'customer', $id, 'CustomerCreated', ['customer_id' => $id]);
             $this->pdo->commit();
             return ['id' => $id, 'name' => $name, 'email' => $email, 'status' => 'active'];
         } catch (\Throwable $exception) {
@@ -240,12 +242,12 @@ final class EnterpriseWorkflowRepository
                 'organisation_id' => $organisationId,
             ]);
             $itemInsert = $this->pdo->prepare(
-                'INSERT INTO invoice_items (invoice_id, product_id, description, quantity, unit_price, unit_cost, total)
-                 VALUES (:invoice_id, :product_id, :description, :quantity, :unit_price, :unit_cost, :total)'
+                'INSERT INTO invoice_items (organisation_id, invoice_id, product_id, description, quantity, unit_price, unit_cost, total)
+                 VALUES (:organisation_id, :invoice_id, :product_id, :description, :quantity, :unit_price, :unit_cost, :total)'
             );
             $saleItemInsert = $this->pdo->prepare(
-                'INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, unit_cost, discount, total)
-                 VALUES (:sale_id, :product_id, :quantity, :unit_price, :unit_cost, 0, :total)'
+                'INSERT INTO sale_items (organisation_id, sale_id, product_id, quantity, unit_price, unit_cost, discount, total)
+                 VALUES (:organisation_id, :sale_id, :product_id, :quantity, :unit_price, :unit_cost, 0, :total)'
             );
             $decrementStock = $this->pdo->prepare(
                 'UPDATE products SET stock_level = stock_level - :quantity
@@ -259,6 +261,7 @@ final class EnterpriseWorkflowRepository
             );
             foreach ($items as $item) {
                 $itemInsert->execute([
+                    'organisation_id' => $organisationId,
                     'invoice_id' => $invoiceId,
                     'product_id' => $item['product_id'],
                     'description' => $item['description'],
@@ -268,6 +271,7 @@ final class EnterpriseWorkflowRepository
                     'total' => $item['total'],
                 ]);
                 $saleItemInsert->execute([
+                    'organisation_id' => $organisationId,
                     'sale_id' => $saleId,
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
@@ -299,6 +303,10 @@ final class EnterpriseWorkflowRepository
                 'sale_id' => $saleId,
                 'invoice_number' => $invoiceNumber,
                 'total' => $invoiceTotal,
+            ]);
+            $this->outbox?->enqueue($organisationId, 'invoice', $invoiceId, 'InvoiceIssued', [
+                'invoice_id' => $invoiceId,
+                'sale_id' => $saleId,
             ]);
             $this->pdo->commit();
             return ['id' => $invoiceId, 'sale_id' => $saleId, 'invoice_number' => $invoiceNumber, 'total' => $invoiceTotal, 'status' => 'issued'];
@@ -370,6 +378,13 @@ final class EnterpriseWorkflowRepository
                 'invoice_id' => $invoiceId,
                 'amount' => $amount,
             ]);
+            $this->outbox?->enqueue(
+                $organisationId,
+                'invoice',
+                $invoiceId,
+                $newStatus === 'paid' ? 'InvoicePaid' : 'InvoicePaymentRecorded',
+                ['payment_id' => $paymentId, 'invoice_id' => $invoiceId, 'amount' => $amount]
+            );
             $this->pdo->commit();
             return [
                 'id' => $paymentId,
@@ -523,9 +538,9 @@ final class EnterpriseWorkflowRepository
             $creditId = (int) $this->pdo->lastInsertId();
             $creditItemInsert = $this->pdo->prepare(
                 'INSERT INTO credit_note_items
-                    (credit_note_id, invoice_item_id, product_id, quantity, returned_quantity, unit_price, unit_cost, subtotal, tax_amount, total)
+                    (organisation_id, credit_note_id, invoice_item_id, product_id, quantity, returned_quantity, unit_price, unit_cost, subtotal, tax_amount, total)
                  VALUES
-                    (:credit_note_id, :invoice_item_id, :product_id, :quantity, :returned_quantity, :unit_price, :unit_cost, :subtotal, :tax_amount, :total)'
+                    (:organisation_id, :credit_note_id, :invoice_item_id, :product_id, :quantity, :returned_quantity, :unit_price, :unit_cost, :subtotal, :tax_amount, :total)'
             );
             $movement = $this->pdo->prepare(
                 "INSERT INTO stock_movements
@@ -535,6 +550,7 @@ final class EnterpriseWorkflowRepository
             );
             foreach ($items as $item) {
                 $creditItemInsert->execute([
+                    'organisation_id' => $organisationId,
                     'credit_note_id' => $creditId,
                     'invoice_item_id' => $item['invoice_item_id'],
                     'product_id' => $item['product_id'],
@@ -721,6 +737,7 @@ final class EnterpriseWorkflowRepository
             ]);
             $id = (int) $this->pdo->lastInsertId();
             $this->audit->record($organisationId, $userId, 'supplier.created', 'supplier', ['supplier_id' => $id]);
+            $this->outbox?->enqueue($organisationId, 'supplier', $id, 'SupplierCreated', ['supplier_id' => $id]);
             $this->pdo->commit();
             return ['id' => $id, 'name' => $name, 'contact_email' => $email, 'status' => 'active'];
         } catch (\Throwable $exception) {
@@ -793,11 +810,12 @@ final class EnterpriseWorkflowRepository
             ]);
             $orderId = (int) $this->pdo->lastInsertId();
             $itemInsert = $this->pdo->prepare(
-                'INSERT INTO purchase_order_items (purchase_order_id, product_id, quantity, unit_cost, total)
-                 VALUES (:purchase_order_id, :product_id, :quantity, :unit_cost, :total)'
+                'INSERT INTO purchase_order_items (organisation_id, purchase_order_id, product_id, quantity, unit_cost, total)
+                 VALUES (:organisation_id, :purchase_order_id, :product_id, :quantity, :unit_cost, :total)'
             );
             foreach ($items as $item) {
                 $itemInsert->execute([
+                    'organisation_id' => $organisationId,
                     'purchase_order_id' => $orderId,
                     'product_id' => $item['product_id'],
                     'quantity' => $item['quantity'],
@@ -809,6 +827,13 @@ final class EnterpriseWorkflowRepository
                 'purchase_order_id' => $orderId,
                 'total' => $total,
             ]);
+            $this->outbox?->enqueue(
+                $organisationId,
+                'purchase_order',
+                $orderId,
+                'PurchaseOrderCreated',
+                ['purchase_order_id' => $orderId]
+            );
             $this->pdo->commit();
             return ['id' => $orderId, 'total' => $total, 'status' => 'draft'];
         } catch (\Throwable $exception) {
@@ -833,6 +858,13 @@ final class EnterpriseWorkflowRepository
                 throw new ApiException(409, 'purchase_order_state_conflict', 'Only a draft purchase order can be submitted.');
             }
             $this->audit->record($organisationId, $userId, 'purchase_order.submitted', 'purchase_order', ['purchase_order_id' => $orderId]);
+            $this->outbox?->enqueue(
+                $organisationId,
+                'purchase_order',
+                $orderId,
+                'PurchaseOrderSubmitted',
+                ['purchase_order_id' => $orderId]
+            );
             $this->pdo->commit();
             return ['id' => $orderId, 'status' => 'submitted'];
         } catch (\Throwable $exception) {
@@ -941,6 +973,13 @@ final class EnterpriseWorkflowRepository
                 'purchase_order_id' => $orderId,
                 'item_count' => count($items),
             ]);
+            $this->outbox?->enqueue(
+                $organisationId,
+                'purchase_order',
+                $orderId,
+                'PurchaseOrderReceived',
+                ['purchase_order_id' => $orderId, 'item_count' => count($items)]
+            );
             $this->pdo->commit();
             return ['id' => $orderId, 'status' => 'received', 'item_count' => count($items)];
         } catch (\Throwable $exception) {

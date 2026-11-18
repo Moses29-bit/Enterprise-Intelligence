@@ -1,20 +1,39 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import interLatin from '@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2?url';
+import { BrowserRouter } from 'react-router-dom';
+import '@fontsource/plus-jakarta-sans/latin-500.css';
+import '@fontsource/plus-jakarta-sans/latin-600.css';
+import '@fontsource/plus-jakarta-sans/latin-700.css';
+import '@fontsource/ibm-plex-sans/latin-400.css';
+import '@fontsource/ibm-plex-sans/latin-500.css';
+import '@fontsource/ibm-plex-sans/latin-600.css';
+import '@fontsource/jetbrains-mono/latin-400.css';
+import '@fontsource/jetbrains-mono/latin-500.css';
+import 'material-symbols/rounded.css';
 import { AuthApp } from './views/AuthApp';
 import './styles.css';
 import './tokens.css';
 
-const fontPreload = document.createElement('link');
-fontPreload.rel = 'preload';
-fontPreload.href = interLatin;
-fontPreload.as = 'font';
-fontPreload.type = 'font/woff2';
-fontPreload.crossOrigin = 'anonymous';
-document.head.append(fontPreload);
+void document.fonts.load('20px "Material Symbols Rounded"').then(() => {
+  if (document.fonts.check('20px "Material Symbols Rounded"')) {
+    document.documentElement.dataset.materialSymbolsReady = 'true';
+  }
+}).catch((error: unknown) => {
+  console.error('Material Symbols could not be loaded; using accessible icon fallbacks.', error);
+});
+
+const systemColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
+systemColorScheme.addEventListener('change', (event) => {
+  const root = document.documentElement;
+  if (root.dataset.themeChoice === 'system') {
+    root.dataset.theme = event.matches ? 'dark' : 'light';
+  }
+});
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <AuthApp />
+    <BrowserRouter>
+      <AuthApp />
+    </BrowserRouter>
   </React.StrictMode>,
 );

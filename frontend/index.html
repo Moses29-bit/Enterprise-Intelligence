@@ -4,7 +4,31 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="no-referrer" />
-    <title>VANTIQ Secure Access</title>
+    <meta name="description" content="VANTIQ Enterprise Intelligence and Decision Platform." />
+    <title>VANTIQ | Enterprise Intelligence</title>
+    <script>
+      (() => {
+        const root = document.documentElement;
+        let theme = 'system';
+        let density = 'comfortable';
+        try {
+          const userId = localStorage.getItem('vantiq:last-user');
+          const stored = userId ? localStorage.getItem(`vantiq:appearance:${userId}`) : null;
+          if (stored) {
+            const preferences = JSON.parse(stored);
+            if (['system', 'light', 'dark'].includes(preferences.theme)) theme = preferences.theme;
+            if (['comfortable', 'compact'].includes(preferences.density)) density = preferences.density;
+          }
+        } catch (error) {
+          console.error('Unable to restore appearance preferences.', error);
+        }
+        root.dataset.themeChoice = theme;
+        root.dataset.theme = theme === 'system'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        root.dataset.density = density;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

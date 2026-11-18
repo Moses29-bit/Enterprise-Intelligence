@@ -5,7 +5,12 @@ require dirname(__DIR__) . '/backend/bootstrap.php';
 
 use Vantiq\Config\Config;
 use Vantiq\Http\ApiException;
+use Vantiq\Http\Request;
+use Vantiq\Http\Response;
+use Vantiq\Http\Router;
+use Vantiq\Repository\BaseRepository;
 use Vantiq\Http\Validator;
+use Vantiq\Infrastructure\Logger;
 use Vantiq\Repository\AuditRepository;
 use Vantiq\Repository\LoginAttemptRepository;
 use Vantiq\Repository\LoginHistoryRepository;
@@ -14,8 +19,10 @@ use Vantiq\Repository\PasswordResetRepository;
 use Vantiq\Repository\RoleRepository;
 use Vantiq\Repository\UserRepository;
 use Vantiq\Security\AuthMiddleware;
+use Vantiq\Security\PermissionMiddleware;
 use Vantiq\Security\SessionManager;
 use Vantiq\Service\AccountService;
+use Vantiq\Service\AuditLogger;
 use Vantiq\Service\AuthService;
 use Vantiq\Service\PasswordResetDelivery;
 
@@ -156,6 +163,189 @@ $expectApiError = static function (callable $callback, int $status) use ($assert
     throw new RuntimeException('Expected an API exception.');
 };
 
+$test('Request JSON accepts object bodies and empty bodies', static function () use ($assert): void {
+    $assert((new Request('POST', '/test', [], [], '{"value":1}', '127.0.0.1'))->json() === ['value' => 1]);
+    $assert((new Request('POST', '/test', [], [], '', '127.0.0.1'))->json() === []);
+});
+
+$test('Request headers are case-insensitive', static function () use ($assert): void {
+    $request = new Request('POST', '/test', ['X-CSRF-Token' => 'token-value'], [], '', '127.0.0.1');
+    $assert($request->header('X-CSRF-Token') === 'token-value');
+});
+
+$test('Request JSON media type permits parameters but rejects lookalike types', static function () use ($assert): void {
+    $json = new Request('POST', '/test', ['Content-Type' => 'Application/JSON; charset=utf-8'], [], '', '127.0.0.1');
+    $lookalike = new Request('POST', '/test', ['Content-Type' => 'application/jsonp'], [], '', '127.0.0.1');
+    $assert($json->isJson(), 'A JSON media type with parameters was not recognized.');
+    $assert(!$lookalike->isJson(), 'A non-JSON lookalike media type was accepted.');
+});
+
+$test('Request JSON rejects malformed and non-object bodies', static function () use ($expectApiError): void {
+    $expectApiError(static fn () => (new Request('POST', '/test', [], [], '{broken', '127.0.0.1'))->json(), 400);
+    $expectApiError(static fn () => (new Request('POST', '/test', [], [], '[]', '127.0.0.1'))->json(), 400);
+});
+
+$test('Request JSON rejects payloads above its bounded size', static function () use ($expectApiError): void {
+    $body = str_repeat('x', Request::MAX_JSON_BYTES + 1);
+    $expectApiError(static fn () => (new Request('POST', '/test', [], [], $body, '127.0.0.1'))->json(), 413);
+});
+
+$test('JSON responses use the consistent success and error envelope', static function () use ($assert): void {
+    ob_start();
+    Response::success(['id' => 7]);
+    $success = json_decode((string) ob_get_clean(), true);
+    $assert($success === ['success' => true, 'data' => ['id' => 7], 'error' => null]);
+
+    ob_start();
+    Response::error('invalid_input', 'Check the request.', ['name' => 'Required'], 422);
+    $error = json_decode((string) ob_get_clean(), true);
+    $assert($error['success'] === false && $error['data'] === null);
+    $assert($error['error'] === [
+        'code' => 'invalid_input',
+        'message' => 'Check the request.',
+        'details' => ['name' => 'Required']
+    ]);
+
+    ob_start();
+    Response::error('internal_error', 'Unavailable.', null, 500, '0123456789abcdef0123456789abcdef');
+    $correlatedError = json_decode((string) ob_get_clean(), true);
+    $assert($correlatedError['error']['reference_id'] === '0123456789abcdef0123456789abcdef');
+});
+
+$test('Exception logging correlates safe operation context and SQLSTATE only', static function () use ($assert): void {
+    $originalErrorLog = ini_get('error_log');
+    $logPath = tempnam(sys_get_temp_dir(), 'vantiq-error-test-');
+    if ($logPath === false) {
+        throw new RuntimeException('Unable to allocate a temporary log file.');
+    }
+
+    try {
+        ini_set('error_log', $logPath);
+        $exception = new PDOException('Sensitive SQL and parameter data');
+        $exception->errorInfo = ['42000', 1064, 'Sensitive SQL details'];
+        $referenceId = (new Logger())->exception('Request failed', $exception, [
+            'operation' => 'GET /admin/overview',
+            'user_id' => 7,
+            'organisation_id' => 3
+        ]);
+        $logged = file_get_contents($logPath);
+        $assert(is_string($logged), 'The structured error log could not be read.');
+        $jsonStart = strpos($logged, '{');
+        $entry = $jsonStart === false ? null : json_decode(substr($logged, $jsonStart), true);
+        $assert(is_array($entry), 'The structured error log was not valid JSON.');
+        $assert(($entry['context']['reference_id'] ?? null) === $referenceId, 'The reference ID was not logged.');
+        $assert(($entry['context']['operation'] ?? null) === 'GET /admin/overview', 'The operation was not logged.');
+        $assert(($entry['context']['sqlstate'] ?? null) === '42000', 'The SQLSTATE was not logged.');
+        $assert(!str_contains($logged, 'Sensitive SQL'), 'The exception message was logged.');
+        $assert(!str_contains($logged, 'Sensitive SQL details'), 'The SQL diagnostic message was logged.');
+    } finally {
+        ini_set('error_log', (string) $originalErrorLog);
+        unlink($logPath);
+    }
+});
+
+$test('Non-exception failures receive a correlated reference ID', static function () use ($assert): void {
+    $originalErrorLog = ini_get('error_log');
+    $logPath = tempnam(sys_get_temp_dir(), 'vantiq-event-error-');
+    if ($logPath === false) {
+        throw new RuntimeException('Unable to allocate a temporary log file.');
+    }
+
+    try {
+        ini_set('error_log', $logPath);
+        $referenceId = (new Logger())->correlatedError('Storage cleanup failed.', [
+            'operation' => 'POST /documents/upload',
+            'stage' => 'storage_cleanup',
+        ]);
+        $logged = file_get_contents($logPath);
+        $assert(is_string($logged), 'The structured error log could not be read.');
+        $jsonStart = strpos($logged, '{');
+        $entry = $jsonStart === false ? null : json_decode(substr($logged, $jsonStart), true);
+        $assert(is_array($entry), 'The structured error log was not valid JSON.');
+        $assert(($entry['context']['reference_id'] ?? null) === $referenceId, 'The reference ID was not logged.');
+        $assert(($entry['context']['operation'] ?? null) === 'POST /documents/upload', 'The operation was not logged.');
+        $assert(($entry['context']['stage'] ?? null) === 'storage_cleanup', 'The failure stage was not logged.');
+    } finally {
+        ini_set('error_log', (string) $originalErrorLog);
+        unlink($logPath);
+    }
+});
+
+$test('Unhandled SQL failures return a reference matching the server log', static function () use ($assert): void {
+    $originalErrorLog = ini_get('error_log');
+    $originalSession = $_SESSION ?? null;
+    $logPath = tempnam(sys_get_temp_dir(), 'vantiq-router-error-');
+    if ($logPath === false) {
+        throw new RuntimeException('Unable to allocate a temporary log file.');
+    }
+
+    try {
+        ini_set('error_log', $logPath);
+        $_SESSION = ['user_id' => 7, 'organisation_id' => 3];
+        $router = new Router(new Logger());
+        $router->add('GET', '#^/documents$#', static function (): array {
+            $exception = new PDOException('Sensitive SQL details');
+            $exception->errorInfo = ['42S02', 1146, 'Sensitive SQL details'];
+            throw $exception;
+        });
+
+        ob_start();
+        $router->dispatch(new Request('GET', '/documents', [], [], '', '127.0.0.1'));
+        $response = json_decode((string) ob_get_clean(), true);
+        $assert(is_array($response), 'The router did not return a JSON response.');
+        $referenceId = $response['error']['reference_id'] ?? null;
+        $assert(is_string($referenceId), 'The error response omitted its reference ID.');
+
+        $logged = file_get_contents($logPath);
+        $jsonStart = is_string($logged) ? strpos($logged, '{') : false;
+        $entry = $jsonStart === false ? null : json_decode(substr($logged, $jsonStart), true);
+        $assert(is_array($entry), 'The server log was not structured JSON.');
+        $assert(($entry['context']['reference_id'] ?? null) === $referenceId, 'The response and log reference IDs differ.');
+        $assert(($entry['context']['operation'] ?? null) === 'GET /documents', 'The failing operation was not logged.');
+        $assert(($entry['context']['user_id'] ?? null) === 7, 'The authenticated user was not logged.');
+        $assert(($entry['context']['organisation_id'] ?? null) === 3, 'The tenant context was not logged.');
+        $assert(($entry['context']['sqlstate'] ?? null) === '42S02', 'The SQLSTATE was not logged.');
+        $assert(!str_contains((string) $logged, 'Sensitive SQL'), 'SQL diagnostics leaked into the server log.');
+    } finally {
+        ini_set('error_log', (string) $originalErrorLog);
+        if ($originalSession === null) {
+            unset($_SESSION);
+        } else {
+            $_SESSION = $originalSession;
+        }
+        unlink($logPath);
+    }
+});
+
+$test('Base repository requires a tenant predicate and binds its tenant id', static function () use ($pdo, $assert): void {
+    $pdo->exec('CREATE TABLE foundation_tenant_rows (id INTEGER PRIMARY KEY, organisation_id INTEGER NOT NULL)');
+    $insert = $pdo->prepare('INSERT INTO foundation_tenant_rows (id, organisation_id) VALUES (:id, :organisation_id)');
+    $insert->execute(['id' => 1, 'organisation_id' => 10]);
+    $insert->execute(['id' => 2, 'organisation_id' => 20]);
+
+    $repository = new class($pdo) extends BaseRepository {
+        public function findForOrganisation(int $organisationId): array
+        {
+            return $this->executeTenantScoped(
+                'SELECT id FROM foundation_tenant_rows WHERE organisation_id = :organisation_id',
+                $organisationId
+            )->fetchAll();
+        }
+
+        public function findWithoutTenantPredicate(): array
+        {
+            return $this->executeTenantScoped('SELECT id FROM foundation_tenant_rows', 10)->fetchAll();
+        }
+    };
+
+    $assert($repository->findForOrganisation(10) === [['id' => 1]]);
+    try {
+        $repository->findWithoutTenantPredicate();
+        throw new RuntimeException('An unscoped query was accepted.');
+    } catch (LogicException) {
+    }
+});
+
 $test('Organisation registration, owner role and password hashing', static function () use ($auth, $users, $roles, $pdo, $assert): void {
     $result = $auth->register('Northwind Group', 'Riley Owner', 'owner@example.test', 'StrongPassword!42', '127.0.0.1');
     $assert($result['user']['organisation']['name'] === 'Northwind Group');
@@ -166,6 +356,26 @@ $test('Organisation registration, owner role and password hashing', static funct
     $assert(password_verify('StrongPassword!42', $user['password_hash']));
     $assert(!$roles->hasPermission((int) $user['id'], 'platform.users.manage'));
     $assert((int) $pdo->query('SELECT COUNT(*) FROM audit_logs')->fetchColumn() === 1);
+});
+
+$test('Audit logger stores explicit before and after state', static function () use ($users, $audit, $pdo, $assert): void {
+    $user = $users->findByEmail('owner@example.test');
+    $logger = new AuditLogger($audit);
+    $logger->record(
+        (int) $user['organisation_id'],
+        (int) $user['id'],
+        'account.status_changed',
+        'user',
+        ['status' => 'active'],
+        ['status' => 'inactive'],
+        ['target_user_id' => (int) $user['id']]
+    );
+    $statement = $pdo->prepare('SELECT details FROM audit_logs WHERE action_type = :action ORDER BY id DESC LIMIT 1');
+    $statement->execute(['action' => 'account.status_changed']);
+    $details = json_decode((string) $statement->fetchColumn(), true);
+    $assert($details['before'] === ['status' => 'active']);
+    $assert($details['after'] === ['status' => 'inactive']);
+    $assert($details['context']['target_user_id'] === (int) $user['id']);
 });
 
 $test('Registration rejects duplicate email addresses', static function () use ($auth, $expectApiError): void {
@@ -262,6 +472,33 @@ $test('Role checks prevent non-owner account management', static function () use
     $assert(!$roles->hasPermission($analystId, 'users.manage'));
 });
 
+$test('Permission middleware centralizes RBAC and platform access rules', static function () use ($pdo, $users, $roles, $expectApiError, $assert): void {
+    $owner = $users->findByEmail('owner@example.test');
+    $analyst = $users->findByEmail('analyst@example.test');
+    $pdo->prepare(
+        'INSERT INTO users (organisation_id, email, password_hash, full_name, status, created_at, updated_at)
+         VALUES (NULL, :email, :password_hash, :full_name, :status, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+    )->execute([
+        'email' => 'platform@example.test',
+        'password_hash' => password_hash('Platform-Test-Only-Password-1!', PASSWORD_DEFAULT),
+        'full_name' => 'Platform Administrator',
+        'status' => 'active'
+    ]);
+    $platformId = (int) $pdo->lastInsertId();
+    $pdo->prepare(
+        'INSERT INTO user_roles (user_id, role_id, created_at)
+         SELECT :user_id, id, CURRENT_TIMESTAMP FROM roles WHERE organisation_id IS NULL AND name = :role_name'
+    )->execute(['user_id' => $platformId, 'role_name' => 'Platform Super Administrator']);
+    $platform = $users->findById($platformId);
+    $middleware = new PermissionMiddleware($roles);
+
+    $middleware->require($owner, 'users.manage');
+    $middleware->require($platform, 'users.manage');
+    $middleware->requireAny($analyst, ['finance.read', 'operations.read']);
+    $expectApiError(static fn () => $middleware->require($analyst, 'users.manage'), 403);
+    $expectApiError(static fn () => $middleware->requireAny($analyst, ['users.manage', 'connect.manage']), 403);
+});
+
 $test('Account suspension and activation revoke existing sessions', static function () use ($config, $session, $users, $roles, $organisations, $audit, $pdo, $assert): void {
     $analyst = $users->findByEmail('analyst@example.test');
     $owner = $users->findByEmail('owner@example.test');
@@ -345,6 +582,39 @@ $test('Role updates are tenant-scoped and preserve the last organisation owner',
     $ownerRole = $roles->organisationRoles($organisationId);
     $ownerRoleId = (int) array_values(array_filter($ownerRole, static fn (array $role): bool => $role['name'] === 'Organisation Owner'))[0]['id'];
     $expectApiError(static fn () => $service->updateRoles($owner, (int) $owner['id'], []), 422);
+    $assert($roles->userHasOrganisationRole((int) $owner['id'], $organisationId, $ownerRoleId));
+});
+
+$test('Role updates cannot grant permissions beyond the acting user', static function () use ($users, $roles, $audit, $pdo, $expectApiError, $assert): void {
+    $owner = $users->findByEmail('owner@example.test');
+    $analyst = $users->findByEmail('analyst@example.test');
+    $organisationId = (int) $owner['organisation_id'];
+    $limitedRole = $pdo->prepare(
+        'INSERT INTO roles (organisation_id, name, description, is_system, created_at)
+         VALUES (:organisation_id, :name, :description, 0, CURRENT_TIMESTAMP)'
+    );
+    $limitedRole->execute([
+        'organisation_id' => $organisationId,
+        'name' => 'Access Coordinator',
+        'description' => 'Limited access management',
+    ]);
+    $limitedRoleId = (int) $pdo->lastInsertId();
+    $pdo->prepare(
+        'INSERT INTO role_permissions (role_id, permission_id, created_at)
+         SELECT :role_id, id, CURRENT_TIMESTAMP FROM permissions WHERE code = :permission'
+    )->execute(['role_id' => $limitedRoleId, 'permission' => 'users.manage']);
+    $roles->replaceOrganisationRoles((int) $analyst['id'], $organisationId, [$limitedRoleId]);
+
+    $organisationRoles = $roles->organisationRoles($organisationId);
+    $ownerRoleId = (int) array_values(array_filter(
+        $organisationRoles,
+        static fn (array $role): bool => $role['name'] === 'Organisation Owner'
+    ))[0]['id'];
+    $service = new AccountService($pdo, $users, $roles, $audit);
+    $expectApiError(
+        static fn () => $service->updateRoles($analyst, (int) $owner['id'], [$ownerRoleId]),
+        403
+    );
     $assert($roles->userHasOrganisationRole((int) $owner['id'], $organisationId, $ownerRoleId));
 });
 

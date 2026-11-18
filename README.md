@@ -12,6 +12,7 @@ VANTIQ is being developed as a PHP 8.2+/MySQL REST application with a React/Type
 - Role-scoped navigation and working data views for finance, inventory, risk, decisions, reports, imports, and organisation administration. Modules that do not yet have write workflows are explicitly limited rather than represented as completed.
 - MySQL 8 InnoDB schema in [`database/vantiq_schema.sql`](database/vantiq_schema.sql), with ordered migrations in `database/migrations/`.
 - API contract in [`docs/API.md`](docs/API.md).
+- Current verified scope and remaining implementation checklist in [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
 
 ## Workspace assessment
 
@@ -37,17 +38,17 @@ Available at inspection: PHP 8.2.12 with `pdo_mysql`, `pdo_sqlite`, and Composer
    composer install
    ```
    Composer is required to generate the declared PSR-4 autoloader. The backend has a PSR-4 fallback autoloader for local validation before Composer is installed.
-5. Apply the migrations in order:
+5. Apply all numbered migrations in order (including the enterprise repository migration):
    ```powershell
-   & "C:\xampp\php\php.exe" database\migrations\001_authentication.php
-   & "C:\xampp\php\php.exe" database\migrations\002_login_attempt_retention.php
-   & "C:\xampp\php\php.exe" database\migrations\003_business_domains.php
-   & "C:\xampp\php\php.exe" database\migrations\004_business_permissions.php
-   & "C:\xampp\php\php.exe" database\migrations\005_sale_cost_snapshot.php
-   & "C:\xampp\php\php.exe" database\migrations\006_invoice_sales_link.php
+   & "C:\xampp\php\php.exe" bin\migrate.php
    ```
-   Alternatively, import `database/vantiq_schema.sql` in phpMyAdmin, then run migrations 002–006. The database must already exist and match `DB_NAME`.
-6. Install the React client:
+   The runner applies existing PHP migrations and numbered SQL migrations in filename order, records SQL versions in `schema_migrations`, and skips already-applied migrations. Do not edit an applied migration; add a new numbered migration for schema changes. The database must already exist and match `DB_NAME`.
+6. Create the local development demo login:
+   ```powershell
+   & "C:\xampp\php\php.exe" bin\seed-demo-user.php
+   ```
+   Sign in with **demo@vantiq.test** / **DemoWorkspace2026!**. The CLI seed is disabled in production; it can also use `DEMO_USER_EMAIL` and `DEMO_USER_PASSWORD` environment variables. Do not use the published demo password outside local development.
+7. Install the React client:
    ```powershell
    cd frontend
    Copy-Item .env.example .env.local
@@ -100,10 +101,10 @@ npm.cmd run typecheck
 npm.cmd run build
 ```
 
-Backend auth and ledger tests use isolated in-memory SQLite databases. Run the MySQL integration test after migrations against the target local environment; migration compatibility and runtime behavior still need verification on MySQL 8 before production deployment.
+Backend auth and ledger tests use isolated in-memory SQLite databases. Run the MySQL integration test after migrations against the target local environment; migration compatibility and runtime behavior still need verification on MySQL 8 before production deployment. Migration 008 adds data provenance and quality fields, tenant-scopes child records, and creates employee and ledger tables. Its SQL statements are designed to tolerate re-running after partial application through `bin/migrate.php`.
 
 ## Current functional scope and remaining work
 
 The current usable vertical slice includes secure authentication, customer and supplier records, product registration, traceable receipts/adjustments/returns, stock-aware sale and invoice posting, partial/final invoice payments, draft/submitted/received purchase orders, expense capture, summary KPIs, and date-filtered financial activity reports. Invoice posting is linked to a sale and stock deduction in one transaction; payments are collections and do not create additional revenue. Sale-time product costs are snapshotted so gross-profit calculations do not change when product costs are edited later.
 
-The project is not yet a complete production enterprise system. Invoice credit notes/refunds, complete branch/department/employee and customer/supplier/product CRUD, finalized CSV import confirmation and rollback, generated statistical forecasts, automated risk detection, editable/comparable decision scenarios, PDF export, and full end-to-end MySQL 8/browser verification remain to be implemented or validated. Invoice-linked sales are deliberately blocked from the separate point-of-sale refund endpoint until invoice credits can reverse both receivables and any recorded payments consistently. Do not treat demo seed data or summary endpoints as substitutes for these workflows.
+The project is not yet a complete production enterprise system. Invoice credit notes and refunds are implemented by migration 007; invoice-linked sales remain excluded from the separate point-of-sale refund flow so receivables are reversed through credit notes instead. Full customer/supplier/product editing, finalized CSV import confirmation and rollback, generated statistical forecasts, automated risk detection, editable/comparable decision scenarios, PDF export, document management, external system connectors, and full end-to-end MySQL 8/browser verification remain to be implemented or validated. Do not treat demo seed data or summary endpoints as substitutes for these workflows.

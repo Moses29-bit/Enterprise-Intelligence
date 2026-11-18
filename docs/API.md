@@ -2,15 +2,38 @@
 
 ## Base URL and response format
 
-Apache rewrites `/api/...` to `api/index.php`. In local development, Vite proxies `/api` to the Apache project root. Every response is JSON. Successes use `{ "data": ... }`; errors use `{ "error": { "code": "...", "message": "...", "details": null } }`. Error messages do not contain SQL, credentials, or stack traces.
+Apache rewrites `/api/...` to `api/index.php`. In local development, Vite proxies `/api` to the Apache project root. Every response is JSON using a stable envelope. Success:
+
+```json
+{ "success": true, "data": { "status": "ok" }, "error": null }
+```
+
+Error:
+
+```json
+{ "success": false, "data": null, "error": { "code": "not_found", "message": "The requested endpoint was not found.", "details": null } }
+```
+
+Unhandled server failure:
+
+```json
+{ "success": false, "data": null, "error": { "code": "internal_error", "message": "The service is temporarily unavailable.", "details": null, "reference_id": "e3b0c44298fc1c149afbf4c8996fb924" } }
+```
+
+Unhandled server failures include a `reference_id` in the error object. The same value identifies a server-side structured log entry with the operation, authenticated user and organisation when available, failure stage, exception class, SQLSTATE when available, and timestamp. Exception messages, SQL text, credentials, and file paths are not returned to the client or included in correlated exception logs. The `data` and `error` fields remain available for existing API clients.
 
 State-changing requests must send `Content-Type: application/json` and `X-CSRF-Token`. Obtain a token first from `GET /api/auth/csrf`. The browser stores the session in an HttpOnly cookie; JavaScript never receives or stores the session ID. The React Axios client handles this exchange and emits a `vantiq:session-expired` browser event after authenticated requests return 401.
+
+JSON request bodies must be objects and are limited to 65,536 bytes. Empty bodies are accepted only by routes that do not require fields. Malformed JSON, arrays/scalars, oversized payloads, and unsupported media types return explicit API errors.
 
 ## Endpoints
 
 | Method | Path | Access | Description |
 |---|---|---|---|
 | GET | `/api/health` | Public | Checks API/database availability |
+| GET | `/api/events/stream` | Authenticated tenant user with workspace read permission | Receives bounded SSE business-change notifications; reconnect with `Last-Event-ID` |
+| GET | `/api/admin/outbox/failures` | `users.manage` | Lists failed outbox events for the caller's organisation without exposing event payloads |
+| POST | `/api/admin/outbox/events/{eventId}/replay` | `users.manage` + CSRF | Requeues a failed notification event from the caller's organisation |
 | GET | `/api/auth/csrf` | Public | Starts a session and returns a CSRF token |
 | POST | `/api/auth/register` | Public + CSRF | Creates an organisation and initial owner |
 | POST | `/api/auth/login` | Public + CSRF + throttle | Authenticates an account |
@@ -31,6 +54,8 @@ State-changing requests must send `Content-Type: application/json` and `X-CSRF-T
 | GET | `/api/finance/invoices` | `finance.read` | Lists issued invoices, linked sales, payments, and current balances |
 | POST | `/api/finance/invoices` | `finance.write` + CSRF | Issues an invoice, posts the sale, deducts stock, records movements, and audits atomically |
 | POST | `/api/finance/invoices/{id}/payments` | `finance.write` + CSRF | Records a partial or final payment without allowing overpayment |
+| GET | `/api/finance/invoices/{id}/credit-notes` | `finance.read` | Lists tenant-scoped credit notes and their line details |
+| POST | `/api/finance/invoices/{id}/credit-notes` | `finance.write` + CSRF | Credits invoice lines, optionally returns goods to stock, and records refunds atomically |
 | GET | `/api/operations/summary` | `operations.read` | Returns inventory health, low-stock tracking, supply orders, and stock movement summaries |
 | GET | `/api/operations/products` | `finance.read` or `operations.read` | Lists tenant products and current stock balances |
 | POST | `/api/operations/products` | `operations.write` + CSRF | Creates a product at zero stock; opening stock must be recorded as a movement |
@@ -76,7 +101,7 @@ Expense amounts must be positive and use at most two decimal places. Product cre
 
 Financial summary definitions are explicit: net revenue includes posted sales less recorded refunds; gross profit subtracts the sale-time cost snapshot; operating profit subtracts expenses categorized as operating or administrative. Inventory/other and unclassified expenses are reported separately. Payments collected are not represented as profit or cash flow.
 
-Invoice issuance is inventory-backed and posts a linked sale in the same transaction. The invoice balance tracks receivables; its linked sale contributes to revenue and cost of goods sold at issue time. Subsequent payments represent collections, not additional revenue. Product prices and costs come from the server-side product records, and available stock is locked and checked before invoice issue. Invoices currently support product lines only; service/non-catalogue invoice lines are intentionally rejected until the accounting model supports them. Invoice credit notes, payment refunds, and voiding are not implemented; invoice-linked sales are rejected by the point-of-sale refund endpoint to prevent inconsistent receivable balances.
+Invoice issuance is inventory-backed and posts a linked sale in the same transaction. The invoice balance tracks receivables; its linked sale contributes to revenue and cost of goods sold at issue time. Subsequent payments represent collections, not additional revenue. Product prices and costs come from the server-side product records, and available stock is locked and checked before invoice issue. Invoice credit notes reverse invoice balances and can record paid-amount refunds and optional stock returns atomically. Invoices currently support product lines only; service/non-catalogue invoice lines and invoice voiding are not implemented. Invoice-linked sales are rejected by the point-of-sale refund endpoint so receivables are reversed only through the credit-note workflow.
 
 Purchase orders do not affect stock while in draft or submitted states. Receiving a submitted order applies each product's total received quantity once, recalculates its weighted-average unit cost, adds a stock movement, and changes the order state in a single transaction.
 

@@ -8,7 +8,10 @@
     "ext-json": "*",
     "ext-mbstring": "*",
     "ext-pdo": "*",
-    "ext-pdo_mysql": "*"
+    "ext-pdo_mysql": "*",
+    "smalot/pdfparser": "^2.13",
+    "phpoffice/phpword": "^1.4",
+    "phpoffice/phpspreadsheet": "^5.11"
   },
   "autoload": {
     "psr-4": {
@@ -16,7 +19,7 @@
     }
   },
   "scripts": {
-    "test": "php tests/run.php",
+    "test": "php tests/run.php && php tests/data_workspaces.php",
     "lint": "php tests/lint.php"
   }
 }

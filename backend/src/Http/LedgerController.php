@@ -4,28 +4,25 @@ declare(strict_types=1);
 namespace Vantiq\Http;
 
 use DateTimeImmutable;
-use Vantiq\Repository\RoleRepository;
 use Vantiq\Security\AuthMiddleware;
+use Vantiq\Security\PermissionMiddleware;
 use Vantiq\Service\LedgerService;
 
-final class LedgerController
+final class LedgerController extends Controller
 {
     public function __construct(
         private readonly LedgerService $service,
-        private readonly AuthMiddleware $middleware,
-        private readonly RoleRepository $roles
+        AuthMiddleware $middleware,
+        PermissionMiddleware $permissions
     ) {
+        parent::__construct($middleware, $permissions);
     }
 
     public function products(): array
     {
-        $user = $this->middleware->requireUser();
-        if ($user['organisation_id'] === null
-            || (!$this->roles->hasPermission((int) $user['id'], 'operations.read')
-                && !$this->roles->hasPermission((int) $user['id'], 'finance.read')
-                && !$this->roles->hasPermission((int) $user['id'], 'platform.users.manage'))) {
-            throw new ApiException(403, 'forbidden', 'You do not have permission to access product records.');
-        }
+        $user = $this->authenticatedUser();
+        $this->organisationId($user);
+        $this->requireAnyPermission($user, ['operations.read', 'finance.read']);
         return $this->service->products((int) $user['organisation_id']);
     }
 
@@ -171,19 +168,6 @@ final class LedgerController
             ]);
         }
         return $this->service->report((int) $user['organisation_id'], $from, $to);
-    }
-
-    private function tenantUser(string $permission): array
-    {
-        $user = $this->middleware->requireUser();
-        if ($user['organisation_id'] === null) {
-            throw new ApiException(403, 'tenant_required', 'This operation requires an organisation account.');
-        }
-        if (!$this->roles->hasPermission((int) $user['id'], $permission)
-            && !$this->roles->hasPermission((int) $user['id'], 'platform.users.manage')) {
-            throw new ApiException(403, 'forbidden', 'You do not have permission to access this business operation.');
-        }
-        return $user;
     }
 
     private function pagination(Request $request): array
