@@ -89,7 +89,7 @@ declare module 'axios' {
 }
 
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL?.trim() || '/api',
+  baseURL: import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '') || '/api',
   timeout: 8000,
   withCredentials: true,
   headers: { Accept: 'application/json', 'Content-Type': 'application/json' },

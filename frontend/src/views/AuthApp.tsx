@@ -227,7 +227,7 @@ export function AuthApp() {
       return undefined;
     }
 
-    const apiBase = import.meta.env.VITE_API_URL?.trim() || '/api';
+    const apiBase = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '') || '/api';
     const streamUrl = `${apiBase.replace(/\/+$/, '')}/events/stream`;
     const source = new EventSource(streamUrl, { withCredentials: true });
     const seenEventIds = new Set<string>();

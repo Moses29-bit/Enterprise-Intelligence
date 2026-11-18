@@ -32,7 +32,11 @@ systemColorScheme.addEventListener('change', (event) => {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={(() => {
+      const rawBasePath = import.meta.env.VITE_BASE_PATH?.trim() || '/';
+      if (rawBasePath === '/') return undefined;
+      return `/${rawBasePath.replace(/^\/+|\/+$/g, '')}`;
+    })()}>
       <AuthApp />
     </BrowserRouter>
   </React.StrictMode>,

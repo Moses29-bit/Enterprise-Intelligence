@@ -101,6 +101,10 @@ npm.cmd run typecheck
 npm.cmd run build
 ```
 
+## cPanel static frontend hosting
+
+See [CPANEL_DEPLOY.md](CPANEL_DEPLOY.md) for the production build and Apache SPA rewrite setup.
+
 Backend auth and ledger tests use isolated in-memory SQLite databases. Run the MySQL integration test after migrations against the target local environment; migration compatibility and runtime behavior still need verification on MySQL 8 before production deployment. Migration 008 adds data provenance and quality fields, tenant-scopes child records, and creates employee and ledger tables. Its SQL statements are designed to tolerate re-running after partial application through `bin/migrate.php`.
 
 ## Current functional scope and remaining work
