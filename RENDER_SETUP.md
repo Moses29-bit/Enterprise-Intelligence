@@ -10,11 +10,12 @@ These files are installed in the repository root, which contains:
 - `.dockerignore` (this supplied file)
 - `api/index.php`
 - `backend/`
+- `frontend/`
 - `composer.json` and `composer.lock`
 - `database/` migrations
 - existing root `.htaccess` with the VANTIQ `/api` rewrite
 
-The Docker build installs production Composer dependencies. The supplied Apache configuration assumes the API front controller is `api/index.php`.
+The Docker build compiles the React application from `frontend/`, installs production Composer dependencies, and serves the React build at `/`. The `/api` routes continue to use the PHP front controller at `api/index.php`.
 
 ## Install the files
 Keep `Dockerfile`, `.dockerignore`, and `RENDER_SETUP.md` at the repository root, and preserve `deploy/render/apache-vantiq.conf` at its current path. Commit and push these files to the Git branch connected to Render.

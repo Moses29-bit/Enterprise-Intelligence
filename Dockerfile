@@ -1,5 +1,12 @@
 # VANTIQ PHP REST API - Render Docker deployment
-# Build context must be the repository root (the folder containing api/, backend/, and composer.json).
+FROM node:22-alpine AS frontend-build
+
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
 FROM php:8.2-apache
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -29,6 +36,7 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
 
 COPY . /var/www/html/
+COPY --from=frontend-build /app/dist/ /var/www/html/
 
 # Ensure Apache can read application files. Do not make secrets world-writable.
 RUN chown -R www-data:www-data /var/www/html \

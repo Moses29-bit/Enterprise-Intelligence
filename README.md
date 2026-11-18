@@ -16,9 +16,9 @@ VANTIQ is being developed as a PHP 8.2+/MySQL REST application with a React/Type
 
 ## Workspace assessment
 
-The original workspace had a static sample dashboard, a PHP login page with embedded demo credentials, and a demo JSON endpoint backed by hardcoded statistics. Those were not production authentication or database-backed business functionality. The legacy login is now disabled, the legacy endpoint removed, and backend source/configuration paths are denied by Apache. The old dashboard files remain as clearly identified sample material; they are not connected to the authentication API and must not be used as live business data.
+The original workspace had a static sample dashboard, a PHP login page with embedded demo credentials, and a demo JSON endpoint backed by hardcoded statistics. Those were not production authentication or database-backed business functionality. The static dashboard files have been removed; the React application in `frontend/` is the supported user interface. The legacy login is disabled, the legacy endpoint removed, and backend source/configuration paths are denied by Apache.
 
-Available at inspection: PHP 8.2.12 with `pdo_mysql`, `pdo_sqlite`, and Composer-compatible Phar support; Node.js 26.13.0. Composer was not installed. No React frontend/package existed before this phase. The local XAMPP SQL service reports MariaDB 10.4.32, not MySQL 8; schema and PDO integration were validated on that local MariaDB version, but a MySQL 8 production deployment still needs its own compatibility run.
+The local XAMPP SQL service reports MariaDB 10.4.32, not MySQL 8; schema and PDO integration were validated on that local MariaDB version, but a MySQL 8 production deployment still needs its own compatibility run.
 
 ## XAMPP setup (Windows)
 
