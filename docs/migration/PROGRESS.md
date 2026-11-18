@@ -50,6 +50,25 @@ Gate 0 - Audit
 - **Parity fixture method:** complete in `docs/migration/gate0-report.md`.
 - **Gate 1 status:** not started.
 
+## Gate 1 Prerequisite Verification
+
+- `legacy-baseline` tag: **verified** at `bfd58b5db49a23536c589fc3c80751e7bab58f6c`.
+- Working tree: **verified clean** before Gate 1 work.
+- Standalone API files: **verified parked** on `feat/standalone-api-files` at commit `f0aeee4`.
+- Business SQLite fixture diagnosis: **verified complete**; real `sale_items.organisation_id` confirmed and the stale fixture fixed in `tests/business.php`.
+- Backup runbook: **verified present** at `docs/migration/backup-runbook.md`.
+- Restored scratch database: **BLOCKED / unable to verify**.
+
+Read-only prerequisite output:
+
+```text
+candidate_database=vantiq
+table_count=51
+scratch_database=missing
+```
+
+No `vantiq_restore_test`, `vantiq_restore`, or other database name beginning with `vantiq` and matching the required scratch role was found. The only candidate is the original `vantiq` database, so it was not used for writes or scratch restoration. Because the source-state prerequisite is unmet, Gate 1 was not started, no Laravel work was created, and no Gate 1 branch was created.
+
 ## Files
 
 See `docs/migration/gate0-report.md`, `docs/migration/api-contract.md`, `docs/migration/data-risks.md`, and `docs/migration/backup-runbook.md`.
