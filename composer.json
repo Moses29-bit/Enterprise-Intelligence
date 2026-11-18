@@ -20,6 +20,7 @@
   },
   "scripts": {
     "test": "php tests/run.php && php tests/data_workspaces.php",
-    "lint": "php tests/lint.php"
+    "lint": "php tests/lint.php",
+    "cpanel:preflight": "php bin/cpanel-preflight.php"
   }
 }

@@ -29,6 +29,7 @@ final class Database
             PDO::ATTR_STRINGIFY_FETCHES => false,
             PDO::ATTR_TIMEOUT => 3
         ]);
+        $pdo->exec("SET SESSION sql_mode = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
         $pdo->exec("SET time_zone = '+00:00'");
         return $pdo;
     }

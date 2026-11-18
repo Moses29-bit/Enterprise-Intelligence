@@ -44,3 +44,5 @@ After upload, verify:
 - `/finance` or another SPA route returns `index.html`, not a 404.
 - `GET /api/health` returns JSON.
 - Login, logout and a mutating API request work under the same browser origin.
+
+Backend deployment instructions are in [CPANEL_BACKEND_DEPLOY.md](CPANEL_BACKEND_DEPLOY.md).
