@@ -130,3 +130,26 @@ THIS SESSION: Gate 0 only. Do not start the next gate.
 The exact scope line for Gate 1 is:
 
 `THIS SESSION: Gate 1 only. Do not start Gate 2 or later gates.`
+
+## Restored-Copy Gate 2 Parity Method
+
+Gate 2 characterization fixtures will be recorded against a restored copy of the local XAMPP MySQL database, not the SQLite test databases.
+
+The legacy API will be run against the restored MySQL copy and sanitized request/response fixtures will be saved for each endpoint. Laravel will execute the same fixtures against MySQL in Gate 1/2 and PostgreSQL in later gates. Volatile IDs, timestamps and random values will be explicitly documented as normalization exclusions.
+
+### What the SQLite tests prove
+
+- Core PHP repository/service behavior and parameterized SQL execution.
+- Password verification/reset behavior in an in-memory SQLite environment.
+- Session, CSRF, RBAC, and tenant logic for their existing unit fixtures.
+- Selected data-workspace, outbox, workflow and business calculations.
+- `tests/business.php` now proves the stale `sale_items.organisation_id` fixture issue is resolved and 6 focused business scenarios pass.
+
+### What the SQLite tests do not prove
+
+- Exact MySQL `SHOW CREATE TABLE`, engine, collations, defaults or foreign-key behavior.
+- Real MySQL enum, unsigned, datetime, `ON UPDATE`, composite-FK or JSON behavior.
+- PostgreSQL compatibility or case-sensitive/`citext` identity behavior.
+- Production-volume performance or million-row chunking.
+- Restored-copy migration fidelity, data checksums or sequence values.
+- Final HTTP parity for every route: the legacy MySQL fixtures, not SQLite, will drive Gate 2 characterization.

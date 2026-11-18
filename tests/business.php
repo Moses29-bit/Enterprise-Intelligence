@@ -29,7 +29,7 @@ CREATE TABLE sales (
   total DECIMAL(18,2), status TEXT NOT NULL, created_at TEXT
 );
 CREATE TABLE sale_items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, sale_id INTEGER NOT NULL, product_id INTEGER NOT NULL, quantity INTEGER NOT NULL,
+  id INTEGER PRIMARY KEY AUTOINCREMENT, organisation_id INTEGER NOT NULL, sale_id INTEGER NOT NULL, product_id INTEGER NOT NULL, quantity INTEGER NOT NULL,
   unit_price DECIMAL(18,2) NOT NULL, unit_cost DECIMAL(18,2) NOT NULL, discount DECIMAL(18,2), total DECIMAL(18,2)
 );
 CREATE TABLE stock_movements (
