@@ -1,0 +1,6 @@
+version: 1
+captured_at: "2026-11-19T00:06:17.951Z"
+language: "typescript"
+selected_groups:
+analysis_coverage: "issue-only"
+coverage_source: "default"

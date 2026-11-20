@@ -2,6 +2,8 @@
 
 This runbook is for the owner. It is not executed by migration automation and must be performed outside the production environment.
 
+An unverified `C:\xampp\mysql\backup\vantiq_pre_schema_backup.sql` was found. Its opening portion includes `DROP TABLE IF EXISTS` and data inserts, but the file could not be fully inspected or checksummed. Never import it into the original database or a shared instance; inspect and test-restore only in a separate disposable MariaDB instance.
+
 ## 1. Inputs
 
 Set shell variables only locally. Never put passwords or dumps in Git.
@@ -9,29 +11,28 @@ Set shell variables only locally. Never put passwords or dumps in Git.
 ```powershell
 $MySqlBin = "C:\xampp\mysql\bin"
 $DbName = "vantiq"
-$DbUser = "root"
+$DbUser = "<least-privileged backup user>"
 $BackupDir = "C:\vantiq-backups\YYYY-MM-DD"
 $PrivateUploadDir = "C:\xampp\vantiq-private-storage"
-$RestoreDbName = "vantiq_restore"
-$Password = Read-Host "MySQL password" -AsSecureString
-$Bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
-$PlainPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($Bstr)
 ```
 
-Use a credential prompt or MySQL option file instead of a password on the command line when possible.
+Do not convert a secure string to plaintext or put a password value in an argument. Use `--password` without a value to prompt, or an approved protected option-file/secret mechanism.
 
 ## 2. Create the database dump
 
 Create the directory outside the application and web root. Run:
 
 ```powershell
-New-Item -ItemType Directory -Force $BackupDir
+if (Test-Path -LiteralPath $BackupDir) {
+  throw "Backup destination already exists; choose a new timestamped directory."
+}
+New-Item -ItemType Directory -Path $BackupDir
 
 & "$MySqlBin\mysqldump.exe" `
   --host=127.0.0.1 --port=3306 `
-  --user=$DbUser --password=$PlainPassword `
+  --user=$DbUser --password `
   --single-transaction --routines --triggers --events `
-  --hex-blob --set-gtid-purged=OFF `
+  --hex-blob `
   --databases $DbName `
   --result-file="$BackupDir\vantiq.sql"
 ```
@@ -43,7 +44,10 @@ Required flags are `--single-transaction --routines --triggers --events`. `--hex
 Copy the private uploads folder to the backup location, preserving relative paths:
 
 ```powershell
-Copy-Item -Recurse -Force $PrivateUploadDir "$BackupDir\uploads"
+if (Test-Path -LiteralPath "$BackupDir\uploads") {
+  throw "Upload backup destination already exists; do not overwrite it."
+}
+Copy-Item -Recurse $PrivateUploadDir "$BackupDir\uploads"
 ```
 
 The private folder must not be copied into the repository or web root.
@@ -62,29 +66,22 @@ Store both checksum values off-box. Verify them again after the copy leaves the 
 
 ## 5. Restore test into a scratch database
 
-This must use a scratch database name. Never run the restore against the live database.
+Restore into a separate disposable MariaDB instance on a different port, not into the original instance. Because the dump created with `--databases` includes its database name, use an isolated instance rather than trying to redirect the dump into a second schema on the source server.
 
-```sql
-CREATE DATABASE `$RestoreDbName`
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-```
-
-Import with the XAMPP client:
+Import with the XAMPP client pointed only at the isolated disposable instance. In Windows PowerShell, use `cmd.exe` for file input redirection:
 
 ```powershell
-Get-Content "$BackupDir\vantiq.sql" -Raw |
-  & "$MySqlBin\mysql.exe" --host=127.0.0.1 --port=3306 --user=$DbUser --password=$PlainPassword
+& $env:ComSpec /d /c "`"$MySqlBin\mysql.exe`" --host=127.0.0.1 --port=3307 --user=$DbUser --password < `"$BackupDir\vantiq.sql`""
 ```
 
-If the dump contains `USE vantiq`, verify the test database is explicitly selected and isolated. The restored copy may need to be loaded with an option to rewrite database names; do not alter the dump. Gate 1/5 tooling will verify it against the scratch copy.
+The disposable instance must be bound to loopback and use a separate data directory. Confirm the port and server identity before import. Never alter the original database or start the original data directory to perform this test.
 
 ## 6. Restore verification
 
 Run only read-only checks against the scratch database:
 
 ```sql
-USE `$RestoreDbName`;
+USE vantiq;
 SHOW TABLES;
 SELECT version, applied_at FROM schema_migrations ORDER BY version;
 SELECT COUNT(*) FROM users;

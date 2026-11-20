@@ -102,7 +102,7 @@ interface BootstrapFailure {
   healthDetails: string;
   backendReachable: boolean;
   databaseReachable: boolean | null;
-  phpVersion: string | null;
+  javaVersion: number | null;
 }
 
 type SearchRecord = Record<string, unknown>;
@@ -336,7 +336,7 @@ export function AuthApp() {
             : describeBootstrapError(healthError),
           backendReachable: health !== null,
           databaseReachable: health?.database.connected ?? null,
-          phpVersion: health?.php_version ?? null,
+          javaVersion: health?.java_version ?? null,
         });
       } finally {
         if (active) setCheckingSession(false);
@@ -740,9 +740,9 @@ export function AuthApp() {
               <dd>{bootstrapFailure.sessionDetails}</dd>
               <dt>Health check</dt>
               <dd>{bootstrapFailure.healthDetails}</dd>
-              {bootstrapFailure.phpVersion && <>
-                <dt>PHP version</dt>
-                <dd>{bootstrapFailure.phpVersion}</dd>
+              {bootstrapFailure.javaVersion !== null && <>
+                <dt>Java version</dt>
+                <dd>{bootstrapFailure.javaVersion}</dd>
               </>}
             </dl>
           </details>

@@ -1,0 +1,5 @@
+io\vantiq\HealthControllerTest.class
+io\vantiq\security\LegacyPhpPasswordEncoderTest.class
+io\vantiq\migration\VantiqDataMigratorTest.class
+io\vantiq\security\TenantAccessGuardTest.class
+io\vantiq\NeonJdbcIntegrationTest.class

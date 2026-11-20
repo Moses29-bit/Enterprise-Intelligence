@@ -33,7 +33,9 @@ systemColorScheme.addEventListener('change', (event) => {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter basename={(() => {
-      const rawBasePath = import.meta.env.VITE_BASE_PATH?.trim() || '/';
+      const rawBasePath = import.meta.env.DEV
+        ? '/'
+        : import.meta.env.VITE_BASE_PATH?.trim() || '/';
       if (rawBasePath === '/') return undefined;
       return `/${rawBasePath.replace(/^\/+|\/+$/g, '')}`;
     })()}>

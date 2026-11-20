@@ -7,10 +7,7 @@ const frontendRoot = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  const rawBasePath = env.VITE_BASE_PATH?.trim() || '/';
-  const basePath = rawBasePath === '/'
-    ? '/'
-    : `/${rawBasePath.replace(/^\/+|\/+$/g, '')}/`;
+  const basePath = './';
 
   return {
     base: basePath,

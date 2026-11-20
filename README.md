@@ -2,6 +2,18 @@
 
 VANTIQ is being developed as a PHP 8.2+/MySQL REST application with a React/TypeScript client. Authentication and the first database-backed Finance/Operations workflows are implemented; the full enterprise scope is still in progress.
 
+## Java and PostgreSQL transformation
+
+A Java 25/Spring Boot 3 foundation has been added under `backend/spring/`. It includes the target Maven structure, PostgreSQL/Flyway configuration, a 51-table Flyway inventory, Neon environment names, Docker deployment files and a controlled MariaDB-to-PostgreSQL reconciliation utility.
+
+Data migration, live Neon deployment and full Spring business-module implementation remain blocked or in progress until the live source database and infrastructure credentials are available. See:
+
+- [VANTIQ_ARCHITECTURE_AUDIT.md](VANTIQ_ARCHITECTURE_AUDIT.md)
+- [VANTIQ_DATABASE_MIGRATION_INVENTORY.md](VANTIQ_DATABASE_MIGRATION_INVENTORY.md)
+- [VANTIQ_API_COMPATIBILITY_INVENTORY.md](VANTIQ_API_COMPATIBILITY_INVENTORY.md)
+- [VANTIQ_IMPLEMENTATION_ROADMAP.md](VANTIQ_IMPLEMENTATION_ROADMAP.md)
+- [VANTIQ_DATABASE_MIGRATION_GUIDE.md](VANTIQ_DATABASE_MIGRATION_GUIDE.md)
+
 ## What is functional
 
 - Organisation registration creates an organisation, its standard roles, the initial owner account, and an audit record in one database transaction.

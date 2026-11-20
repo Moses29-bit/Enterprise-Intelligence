@@ -1,6 +1,14 @@
 Options -Indexes
 RewriteEngine On
 
+# MIME types for InfinityFree/shared Apache installations.
+AddType text/javascript .js .mjs
+AddType application/json .json
+AddType text/css .css
+AddType image/svg+xml .svg
+AddType font/woff2 .woff2
+AddType font/woff .woff
+
 # Existing API routes must bypass the SPA fallback.
 RewriteRule ^api(?:/|$) - [L]
 

@@ -1,0 +1,100 @@
+{
+  "planHash": "b73ac28a42f3e111657e6277b2ad819a7f9ac15e7bddc9cab67d145d479d7732",
+  "phase": "standalone",
+  "recordedAtUtc": "2026-11-20T07:46:06.4534255Z",
+  "retryCount": 0,
+  "resetBaseline": false,
+  "complete": true,
+  "result": {
+    "setupSucceeded": true,
+    "setupDurationMs": 0,
+    "setupFailureOutput": null,
+    "assertions": [
+      {
+        "name": "frontend-builds",
+        "kind": "process",
+        "verificationMethod": "exit-code",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "\r\n\u003E vantiq-auth-client@1.0.0 build\r\n\u003E tsc -b \u0026\u0026 vite build\r\n\r\n\u001B[36mvite v6.4.6 \u001B[32mbuilding for production...\u001B[36m\u001B[39m\r\ntransforming...\r\n\u001B[32m\u2713\u001B[39m 1008 modules transformed.\r\nrendering chunks...\r\ncomputing gzip size...\r\n\u001B[2mdist/\u001B[22m\u001B[32mindex.html                                                \u001B[39m\u001B[1m\u001B[2m    1.59 kB\u001B[22m\u001B[1m\u001B[22m\u001B[2m \u2502 gzip:   0.71 kB\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/plus-jakarta-sans-latin-600-normal-DLTa1BUW.woff2  \u001B[39m\u001B[1m\u001B[2m   12.19 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/plus-jakarta-sans-latin-700-normal-CfpNZvy6.woff2  \u001B[39m\u001B[1m\u001B[2m   12.24 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/plus-jakarta-sans-latin-500-normal-Bf-nb4oT.woff2  \u001B[39m\u001B[1m\u001B[2m   12.31 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/plus-jakarta-sans-latin-600-normal-BR_Ojra4.woff   \u001B[39m\u001B[1m\u001B[2m   16.08 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/plus-jakarta-sans-latin-500-normal-DYtqi0QS.woff   \u001B[39m\u001B[1m\u001B[2m   16.12 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/plus-jakarta-sans-latin-700-normal-DqEcQeE5.woff   \u001B[39m\u001B[1m\u001B[2m   16.14 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/jetbrains-mono-latin-400-normal-V6pRDFza.woff2     \u001B[39m\u001B[1m\u001B[2m   21.17 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2     \u001B[39m\u001B[1m\u001B[2m   21.83 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/ibm-plex-sans-latin-400-normal-CYLoc0-x.woff       \u001B[39m\u001B[1m\u001B[2m   22.10 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2      \u001B[39m\u001B[1m\u001B[2m   22.59 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/ibm-plex-sans-latin-600-normal-Cu4Hd6ag.woff       \u001B[39m\u001B[1m\u001B[2m   23.88 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/ibm-plex-sans-latin-500-normal-BgVn5rGT.woff       \u001B[39m\u001B[1m\u001B[2m   23.92 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2      \u001B[39m\u001B[1m\u001B[2m   24.18 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2      \u001B[39m\u001B[1m\u001B[2m   24.25 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/jetbrains-mono-latin-400-normal-6-qcROiO.woff      \u001B[39m\u001B[1m\u001B[2m   27.50 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/jetbrains-mono-latin-500-normal-CJOVTJB7.woff      \u001B[39m\u001B[1m\u001B[2m   28.21 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[32massets/material-symbols-rounded-Dax-K5AH.woff2            \u001B[39m\u001B[1m\u001B[2m5,438.33 kB\u001B[22m\u001B[1m\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[35massets/VantiqCinematicDashboard-Cj7Gw93Q.css              \u001B[39m\u001B[1m\u001B[2m   16.47 kB\u001B[22m\u001B[1m\u001B[22m\u001B[2m \u2502 gzip:   4.68 kB\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[35massets/index-D3ZiSHFM.css                                 \u001B[39m\u001B[1m\u001B[2m  162.19 kB\u001B[22m\u001B[1m\u001B[22m\u001B[2m \u2502 gzip:  28.41 kB\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[36massets/DataPages-BBwifNr1.js                              \u001B[39m\u001B[1m\u001B[2m   21.18 kB\u001B[22m\u001B[1m\u001B[22m\u001B[2m \u2502 gzip:   5.81 kB\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[36massets/ControlOverview-LoOt3fwF.js                        \u001B[39m\u001B[1m\u001B[2m   70.10 kB\u001B[22m\u001B[1m\u001B[22m\u001B[2m \u2502 gzip:  19.65 kB\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[36massets/VantiqCinematicDashboard-BVaHp6z6.js               \u001B[39m\u001B[1m\u001B[2m  160.29 kB\u001B[22m\u001B[1m\u001B[22m\u001B[2m \u2502 gzip:  54.55 kB\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[36massets/index-CHBHyXMu.js                                  \u001B[39m\u001B[1m\u001B[2m  404.04 kB\u001B[22m\u001B[1m\u001B[22m\u001B[2m \u2502 gzip: 126.31 kB\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[36massets/StatisticalInsights-RBuV6NTt.js                    \u001B[39m\u001B[1m\u001B[2m  466.49 kB\u001B[22m\u001B[1m\u001B[22m\u001B[2m \u2502 gzip: 133.75 kB\u001B[22m\r\n\u001B[32m\u2713 built in 8.13s\u001B[39m\r\n",
+        "durationMs": 18723
+      },
+      {
+        "name": "tests-pass",
+        "kind": "process",
+        "verificationMethod": "test-results",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "\r\n\u003E vantiq-auth-client@1.0.0 test\r\n\u003E npm run typecheck\r\n\r\n\r\n\u003E vantiq-auth-client@1.0.0 typecheck\r\n\u003E tsc -b --pretty false\r\n\r\n",
+        "durationMs": 10037,
+        "testResults": {
+          "testFramework": "unknown",
+          "runnerDetectedFrom": "none",
+          "testsTotal": 0,
+          "testsPassed": 0,
+          "testsFailed": 0,
+          "testsSkipped": 0,
+          "parseFailed": true
+        }
+      },
+      {
+        "name": "dev-server-serves-home",
+        "kind": "http-probe",
+        "verificationMethod": "http-status",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": null,
+        "outputSample": "HTTP 200\n\u003C!doctype html\u003E\r\n\u003Chtml lang=\u0022en\u0022\u003E\r\n  \u003Chead\u003E\n    \u003Cscript type=\u0022module\u0022\u003Eimport { injectIntoGlobalHook } from \u0022/@react-refresh\u0022;\ninjectIntoGlobalHook(window);\nwindow.$RefreshReg$ = () =\u003E {};\nwindow.$RefreshSig$ = () =\u003E (type) =\u003E type;\u003C/script\u003E\n\n    \u003Cscript type=\u0022module\u0022 src=\u0022/@vite/client\u0022\u003E\u003C/script\u003E\n\r\n    \u003Cmeta charset=\u0022UTF-8\u0022 /\u003E\r\n    \u003Cmeta name=\u0022viewport\u0022 content=\u0022width=device-width, initial-scale=1.0\u0022 /\u003E\r\n    \u003Cmeta name=\u0022referrer\u0022 content=\u0022no-referrer\u0022 /\u003E\r\n    \u003Cmeta name=\u0022description\u0022 content=\u0022VANTIQ Enterprise Intelligence and Decision Platform.\u0022 /\u003E\r\n    \u003Ctitle\u003EVANTIQ | Enterprise Intelligence\u003C/title\u003E\r\n    \u003Cscript\u003E\r\n      (() =\u003E {\r\n        const root = document.documentElement;\r\n        let theme = \u0027system\u0027;\r\n        let density = \u0027comfortable\u0027;\r\n        try {\r\n          const userId = localStorage.getItem(\u0027vantiq:last-user\u0027);\r\n          const stored = userId ? localStorage.getItem(\u0060vantiq:appearance:${userId}\u0060) : null;\r\n          if (stored) {\r\n            const preferences = JSON.parse(stored);\r\n            if ([\u0027system\u0027, \u0027light\u0027, \u0027dark\u0027].includes(preferences.theme)) theme = preferences.theme;\r\n            if ([\u0027comfortable\u0027, \u0027compact\u0027].includes(preferences.density)) density = preferences.density;\r\n          }\r\n        } catch (error) {\r\n          console.error(\u0027Unable to restore appearance preferences.\u0027, error);\r\n        }\r\n        root.dataset.themeChoice = theme;\r\n        root.dataset.theme = theme === \u0027system\u0027\r\n          ? (window.matchMedia(\u0027(prefers-color-scheme: dark)\u0027).matches ? \u0027dark\u0027 : \u0027light\u0027)\r\n          : theme;\r\n        root.dataset.density = density;\r\n      })();\r\n    \u003C/script\u003E\r\n  \u003C/head\u003E\r\n  \u003Cbody\u003E\r\n    \u003Cdiv id=\u0022root\u0022\u003E\u003C/div\u003E\r\n    \u003Cscript type=\u0022module\u0022 src=\u0022/src/main.tsx\u0022\u003E\u003C/script\u003E\r\n  \u003C/body\u003E\r\n\u003C/html\u003E\r\n\n--- server output ---\n\r\n\u003E vantiq-auth-client@1.0.0 dev\r\n\u003E vite --host 127.0.0.1\r\n\r\n\r\n  \u001B[32m\u001B[1mVITE\u001B[22m v6.4.6\u001B[39m  \u001B[2mready in \u001B[0m\u001B[1m540\u001B[22m\u001B[2m\u001B[0m ms\u001B[22m\r\n\r\n  \u001B[32m\u279C\u001B[39m  \u001B[1mLocal\u001B[22m:   \u001B[36mhttp://127.0.0.1:\u001B[1m5173\u001B[22m/\u001B[39m\r\n",
+        "durationMs": 1580
+      }
+    ],
+    "executions": [
+      {
+        "source": "frontend-builds",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+        "args": [
+          "run",
+          "build"
+        ],
+        "cwd": "C:\\xampp\\htdocs\\Enterprise Intelligence\\frontend",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      },
+      {
+        "source": "tests-pass",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+        "args": [
+          "test"
+        ],
+        "cwd": "C:\\xampp\\htdocs\\Enterprise Intelligence\\frontend",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      },
+      {
+        "source": "dev-server-serves-home",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+        "args": [
+          "run",
+          "dev",
+          "--",
+          "--host",
+          "127.0.0.1"
+        ],
+        "cwd": "C:\\xampp\\htdocs\\Enterprise Intelligence\\frontend",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      }
+    ]
+  }
+}

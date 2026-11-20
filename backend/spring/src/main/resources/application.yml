@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: vantiq-backend
+  profiles:
+    default: dev
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/vantiq}
+    username: ${DATABASE_USERNAME:vantiq}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      connection-init-sql: SET search_path TO vantiq, public
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+      default_schema: vantiq
+      jdbc:
+        time_zone: UTC
+    properties:
+      hibernate:
+        default_schema: vantiq
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+    baseline-on-migrate: false
+    validate-on-migrate: true
+    # Fail closed to a local direct URL rather than falling back to the runtime datasource.
+    url: ${DATABASE_URL_UNPOOLED:jdbc:postgresql://localhost:5432/vantiq}
+    user: ${DATABASE_USERNAME:}
+    password: ${DATABASE_PASSWORD:}
+    default-schema: vantiq
+    schemas: vantiq
+    create-schemas: true
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  cors:
+    allowed-origins: ${FRONTEND_ORIGIN:http://localhost:5173}
+
+jwt:
+  secret: ${JWT_SECRET:}
+  access-token-minutes: ${JWT_ACCESS_TOKEN_MINUTES:15}
+  refresh-token-days: ${JWT_REFRESH_TOKEN_DAYS:7}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui

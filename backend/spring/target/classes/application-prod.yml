@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: ${DATABASE_POOL_SIZE:5}
+      minimum-idle: ${DATABASE_MIN_IDLE:1}
+      connection-timeout: 10000
+      idle-timeout: 300000
+      max-lifetime: 900000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+logging:
+  level:
+    root: INFO

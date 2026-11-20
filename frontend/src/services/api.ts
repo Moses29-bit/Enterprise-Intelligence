@@ -12,7 +12,7 @@ export interface AuthUser {
 
 export interface HealthStatus {
   status: 'ok' | 'degraded';
-  php_version: string;
+  java_version: number;
   database: { connected: boolean };
 }
 
@@ -89,7 +89,9 @@ declare module 'axios' {
 }
 
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '') || '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL?.trim().replace(/\/+$/, '')
+    || import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '')
+    || '/api',
   timeout: 8000,
   withCredentials: true,
   headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
