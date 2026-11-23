@@ -2,4 +2,6 @@
 frontend/.env.local
 frontend/node_modules/
 frontend/dist/
-vendor/
+.neon
+/backend/spring/.local/
+/backend/spring/target/

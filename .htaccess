@@ -5,7 +5,11 @@ RewriteEngine On
   Require all denied
 </FilesMatch>
 
-RewriteRule ^api(?:/.*)?$ api/index.php [QSA,L]
+<FilesMatch "(^\.git|\.(sql|dump|bak|log|ini)$)">
+  Require all denied
+</FilesMatch>
+
+RewriteRule ^(backend|database|bin|tests|docs|deploy|frontend)(?:/|$) - [F,L]
 
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d

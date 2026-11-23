@@ -1,5 +1,7 @@
 # VANTIQ UX execution report
 
+> Archived report: validation was run against the former PHP backend. The PHP test commands below are no longer available.
+
 ## Status
 
 **Partial completion.** The supported React workspaces received foundational

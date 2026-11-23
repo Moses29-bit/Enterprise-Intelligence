@@ -1,5 +1,7 @@
 # VANTIQ Phase 1 API
 
+> Historical API contract, retained as a migration reference. The PHP API runtime has been removed. Spring currently implements health and authentication endpoints only; the business endpoints below are not evidence of live implementation.
+
 ## Base URL and response format
 
 Apache rewrites `/api/...` to `api/index.php`. In local development, Vite proxies `/api` to the Apache project root. Every response is JSON using a stable envelope. Success:

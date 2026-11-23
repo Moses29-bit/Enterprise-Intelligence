@@ -1,6 +1,8 @@
 # VANTIQ Implementation Checklist
 
-This checklist records repository evidence and validation from the current completion pass. A feature is not marked verified merely because its schema or UI exists.
+> Archived checklist for the retired PHP implementation. Its PHP test commands and implementation claims are historical and do not describe the current Spring Boot backend. See [README.md](../README.md) for current status.
+
+This checklist records repository evidence and validation from the PHP completion pass. A feature is not marked verified merely because its schema or UI exists.
 
 ## Repository and current scope
 

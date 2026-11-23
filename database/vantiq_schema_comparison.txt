@@ -1,0 +1,612 @@
+VANTIQ MARIA DB vs POSTGRESQL SCHEMA COMPARISON
+=================================================================
+Source tables: 51
+Target tables: 52
+Source only: None
+Target only: migration_checkpoints
+
+TABLE: audit_logs
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE details: MariaDB [longtext character set utf8mb4] | PostgreSQL [jsonb]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE user_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=0
+
+TABLE: branches
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=2
+
+TABLE: credit_note_items
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE credit_note_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE invoice_item_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE product_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE quantity: MariaDB [int(11)] | PostgreSQL [integer]
+  TYPE DIFFERENCE returned_quantity: MariaDB [int(11)] | PostgreSQL [integer]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE subtotal: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE tax_amount: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE total: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE unit_cost: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE unit_price: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=9, PostgreSQL=3
+
+TABLE: credit_notes
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE created_by_user_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE invoice_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE stock_returned: MariaDB [tinyint(1)] | PostgreSQL [boolean]
+  TYPE DIFFERENCE subtotal: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE tax_amount: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE total: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=9, PostgreSQL=3
+
+TABLE: customers
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE status: MariaDB [enum('active','inactive','blocked')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=4, PostgreSQL=1
+
+TABLE: data_import_batches
+  TYPE DIFFERENCE column_mapping: MariaDB [longtext character set utf8mb4] | PostgreSQL [jsonb]
+  TYPE DIFFERENCE committed_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE error_count: MariaDB [int(10) unsigned] | PostgreSQL [integer]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE row_count: MariaDB [int(10) unsigned] | PostgreSQL [integer]
+  TYPE DIFFERENCE status: MariaDB [enum('uploaded','validated','committed','rolled_back','failed')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE uploaded_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=0
+
+TABLE: data_import_rows
+  TYPE DIFFERENCE batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE normalized_data: MariaDB [longtext character set utf8mb4] | PostgreSQL [jsonb]
+  TYPE DIFFERENCE row_number: MariaDB [int(10) unsigned] | PostgreSQL [integer]
+  TYPE DIFFERENCE source_data: MariaDB [longtext character set utf8mb4] | PostgreSQL [jsonb]
+  Constraint/index definition counts: MariaDB=3, PostgreSQL=1
+
+TABLE: decision_scenarios
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE created_by_user_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE status: MariaDB [enum('draft','active','archived')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=6, PostgreSQL=1
+
+TABLE: departments
+  TYPE DIFFERENCE branch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=8, PostgreSQL=3
+
+TABLE: documents
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE extracted_text: MariaDB [longtext] | PostgreSQL [text]
+  TYPE DIFFERENCE extraction_status: MariaDB [enum('available','unsupported','failed')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE file_size: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE reviewed_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE uploaded_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE version_number: MariaDB [int(10) unsigned] | PostgreSQL [integer]
+  Constraint/index definition counts: MariaDB=8, PostgreSQL=2
+
+TABLE: employees
+  TYPE DIFFERENCE branch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE department_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE status: MariaDB [enum('active','inactive','terminated')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=9, PostgreSQL=4
+
+TABLE: event_notifications
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE modules: MariaDB [longtext character set utf8mb4] | PostgreSQL [jsonb]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE outbox_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  Constraint/index definition counts: MariaDB=6, PostgreSQL=0
+
+TABLE: expense_categories
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE type: MariaDB [enum('operating','administrative','inventory','other')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=4, PostgreSQL=2
+
+TABLE: expenses
+  TYPE DIFFERENCE amount: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE branch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE category_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE department_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE expense_date: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=11, PostgreSQL=3
+
+TABLE: forecast_results
+  TYPE DIFFERENCE actual_value: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE forecast_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE projected_value: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=1
+
+TABLE: forecasts
+  TYPE DIFFERENCE assumptions: MariaDB [longtext character set utf8mb4] | PostgreSQL [jsonb]
+  TYPE DIFFERENCE confidence_interval: MariaDB [decimal(5,2)] | PostgreSQL [numeric(5,2)]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_coverage: MariaDB [decimal(5,2)] | PostgreSQL [numeric(5,2)]
+  TYPE DIFFERENCE forecast_for: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE generated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=4, PostgreSQL=1
+
+TABLE: import_errors
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE raw_data: MariaDB [longtext character set utf8mb4] | PostgreSQL [jsonb]
+  TYPE DIFFERENCE row_number: MariaDB [int(11)] | PostgreSQL [integer]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=1
+
+TABLE: imported_files
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE file_size: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE status: MariaDB [enum('uploaded','validated','imported','failed')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE uploaded_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE uploaded_by_user_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  Constraint/index definition counts: MariaDB=6, PostgreSQL=1
+
+TABLE: integration_sync_runs
+  TYPE DIFFERENCE completed_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE integration_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE records_synced: MariaDB [int(10) unsigned] | PostgreSQL [integer]
+  TYPE DIFFERENCE started_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE status: MariaDB [enum('success','error')] | PostgreSQL [varchar(20)]
+  Constraint/index definition counts: MariaDB=3, PostgreSQL=0
+
+TABLE: integrations
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE field_mappings: MariaDB [longtext character set utf8mb4] | PostgreSQL [jsonb]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE last_synced_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE records_synced: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE status: MariaDB [enum('draft','active','error','paused')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=0
+
+TABLE: intelligence_insights
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE score: MariaDB [decimal(5,2)] | PostgreSQL [numeric(5,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=3, PostgreSQL=0
+
+TABLE: invoice_items
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE invoice_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE product_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE quantity: MariaDB [int(11)] | PostgreSQL [integer]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE total: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE unit_cost: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE unit_price: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=7, PostgreSQL=3
+
+TABLE: invoice_refunds
+  TYPE DIFFERENCE amount: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE created_by_user_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE credit_note_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE invoice_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE refunded_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=9, PostgreSQL=3
+
+TABLE: invoices
+  TYPE DIFFERENCE branch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE customer_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE due_date: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE issue_date: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE paid_amount: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE sale_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE status: MariaDB [enum('draft','issued','partial','paid','overdue')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE tax_amount: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE total: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=11, PostgreSQL=6
+
+TABLE: ledger_accounts
+  TYPE DIFFERENCE account_type: MariaDB [enum('asset','liability','equity','revenue','expense')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE status: MariaDB [enum('active','inactive')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=2
+
+TABLE: ledger_entries
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE credit: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE debit: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE ledger_account_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=7, PostgreSQL=1
+
+TABLE: login_attempts
+  TYPE DIFFERENCE failed_attempts: MariaDB [smallint(5) unsigned] | PostgreSQL [smallint]
+  TYPE DIFFERENCE locked_until: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE window_started_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=3, PostgreSQL=0
+
+TABLE: login_history
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE status: MariaDB [enum('success','failed')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE user_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  Constraint/index definition counts: MariaDB=6, PostgreSQL=0
+
+TABLE: model_versions
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=3, PostgreSQL=0
+
+TABLE: notifications
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE is_read: MariaDB [tinyint(1)] | PostgreSQL [boolean]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE user_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=0
+
+TABLE: organisations
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE status: MariaDB [enum('active','inactive','suspended')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=3, PostgreSQL=0
+
+TABLE: outbox_events
+  TYPE DIFFERENCE attempts: MariaDB [smallint(5) unsigned] | PostgreSQL [smallint]
+  TYPE DIFFERENCE available_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE event_payload: MariaDB [longtext character set utf8mb4] | PostgreSQL [jsonb]
+  TYPE DIFFERENCE event_version: MariaDB [smallint(5) unsigned] | PostgreSQL [smallint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE locked_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE processed_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE status: MariaDB [enum('pending','processing','published','failed')] | PostgreSQL [varchar(20)]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=0
+
+TABLE: password_reset_tokens
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE expires_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE used_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE user_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  Constraint/index definition counts: MariaDB=4, PostgreSQL=0
+
+TABLE: payments
+  TYPE DIFFERENCE amount: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE customer_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE invoice_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE payment_date: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=7, PostgreSQL=2
+
+TABLE: permissions
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  Constraint/index definition counts: MariaDB=2, PostgreSQL=0
+
+TABLE: product_categories
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=4, PostgreSQL=2
+
+TABLE: products
+  TYPE DIFFERENCE branch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE category_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE reorder_level: MariaDB [int(11)] | PostgreSQL [integer]
+  TYPE DIFFERENCE selling_price: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE stock_level: MariaDB [int(11)] | PostgreSQL [integer]
+  TYPE DIFFERENCE unit_cost: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=10, PostgreSQL=4
+
+TABLE: purchase_order_items
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE product_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE purchase_order_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE quantity: MariaDB [int(11)] | PostgreSQL [integer]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE total: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE unit_cost: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=7, PostgreSQL=2
+
+TABLE: purchase_orders
+  TYPE DIFFERENCE branch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE expected_date: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE order_date: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE status: MariaDB [enum('draft','submitted','received','closed')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE supplier_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE total: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=8, PostgreSQL=3
+
+TABLE: risk_alerts
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE detected_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE evidence: MariaDB [longtext character set utf8mb4] | PostgreSQL [jsonb]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE reviewer_user_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE severity: MariaDB [enum('low','medium','high','critical')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE status: MariaDB [enum('open','assigned','reviewing','resolved','dismissed')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=0
+
+TABLE: role_permissions
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE permission_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE role_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=1
+
+TABLE: roles
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE is_system: MariaDB [tinyint(1)] | PostgreSQL [boolean]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  Constraint/index definition counts: MariaDB=4, PostgreSQL=1
+
+TABLE: sale_items
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE discount: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE product_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE quantity: MariaDB [int(11)] | PostgreSQL [integer]
+  TYPE DIFFERENCE sale_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE total: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE unit_cost: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE unit_price: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=7, PostgreSQL=2
+
+TABLE: sales
+  TYPE DIFFERENCE branch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE customer_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE department_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE discount: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE sale_date: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE status: MariaDB [enum('draft','posted','refunded')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE subtotal: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE tax: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE total: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=12, PostgreSQL=4
+
+TABLE: scenario_assumptions
+  TYPE DIFFERENCE assumption_value: MariaDB [longtext character set utf8mb4] | PostgreSQL [jsonb]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE scenario_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=1
+
+TABLE: scenario_results
+  TYPE DIFFERENCE actual_value: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE projected_value: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE scenario_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE variance: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=1
+
+TABLE: schema_migrations
+  TYPE DIFFERENCE applied_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=1, PostgreSQL=0
+
+TABLE: stock_movements
+  TYPE DIFFERENCE branch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE movement_type: MariaDB [enum('receipt','adjustment','transfer','sale','return')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE product_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE quantity: MariaDB [int(11)] | PostgreSQL [integer]
+  TYPE DIFFERENCE reference_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE unit_cost: MariaDB [decimal(18,2)] | PostgreSQL [numeric(18,2)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=7, PostgreSQL=2
+
+TABLE: suppliers
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE created_by: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE data_quality_status: MariaDB [enum('unreviewed','validated','rejected')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE import_batch_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE source: MariaDB [enum('manual','upload','integration')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE status: MariaDB [enum('active','inactive')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=4, PostgreSQL=1
+
+TABLE: user_roles
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE role_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE user_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  Constraint/index definition counts: MariaDB=5, PostgreSQL=1
+
+TABLE: users
+  TYPE DIFFERENCE created_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE last_login_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  TYPE DIFFERENCE organisation_id: MariaDB [bigint(20) unsigned] | PostgreSQL [bigint]
+  TYPE DIFFERENCE session_version: MariaDB [int(10) unsigned] | PostgreSQL [integer]
+  TYPE DIFFERENCE status: MariaDB [enum('active','inactive','suspended')] | PostgreSQL [varchar(20)]
+  TYPE DIFFERENCE updated_at: MariaDB [datetime] | PostgreSQL [timestamptz]
+  Constraint/index definition counts: MariaDB=4, PostgreSQL=0
+
+SUMMARY
+-----------------------------------------------------------------
+Common tables analysed: 51
+type_differences: 443
+constraint_count_differences: 51
+
+IMPORTANT: This is a structural screening report, not proof of data compatibility.
+Constraint counts are not semantic equivalence. Review foreign keys,
+checks, defaults, ENUM mappings, identity columns and tenant rules before import.
